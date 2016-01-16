@@ -1,0 +1,9 @@
+body {
+  width: 400px;
+  height: 520px;
+  overflow: hidden;
+}
+
+iframe {
+  background: url(loading.gif) no-repeat center center;
+}

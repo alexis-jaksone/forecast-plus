@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html>
+  <head>
+    <title>Options - Template Extension</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="../icons/16.png">
+    <link rel="stylesheet" type="text/css" href="index.css">
+  </head>
+  <body class="flex">
+    <div id="header" class="flex">
+      <div style="">
+        <span>Forecast Plus</span>
+        <br/>
+        <span class="note">Provides local and long range weather forecast</span>
+      </div>
+    </div>
+
+    <div id="content" class="flex">
+      <table width="100%">
+        <tr>
+          <td>Dimensions:</td>
+          <td>
+            <span>Popup width is </span> <input data-pref="popup.width" type="number" min="400"></input> <span>px</span>.
+            <p class="note">Minimum popup width is 400px.</p>
+            <p class="spacer"></p>
+            <span>Popup height is </span> <input data-pref="popup.height" type="number" min="500"></input> <span>px</span>.
+            <p class="note">Minimum popup height is 500px.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>Badge icon:</td>
+          <td>
+            <span>Check weather condition every </span> <input data-pref="weather.timeout" type="number" min="1"></input> <span>minutes</span>.
+            <p class="note">Minimum period is 1 minute.</p>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <script type='text/javascript' src="shadow_index.js"></script>
+
+  </body>
+</html>

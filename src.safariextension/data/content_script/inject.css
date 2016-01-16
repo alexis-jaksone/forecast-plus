@@ -1,0 +1,27 @@
+.pws-network,
+.show-for-small-only,
+[class="header-ad-wrap"],
+[class="ad-nav"],
+div[id="ads"],
+div[id="share"],
+div[id="adunit"],
+div[id*="_ads_"],
+div[id="blog-mod"],
+div[id="video-mod"],
+div[id="photo-mod"],
+div[id="ww-events"],
+div[id="news-blogs"],
+div[id="photo-reel"],
+div[id="google_image_div"],
+div[id*="google_ads_iframe"],
+iframe[src="tpc.googlesyndication"],
+iframe[id*="google_ads_iframe"],
+div[id="WX_WindowShade"],
+div[class="ad-boxes"],
+footer[class="primary"],
+iframe[id*="-ads-"],
+div[id*="-ads-"],
+div[id*="-ad-"] {
+  display: none !important;
+  visibility: hidden !important;
+}
