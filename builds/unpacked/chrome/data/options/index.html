@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html>
+  <head>
+    <title>Options - Template Extension</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="../icons/16.png">
+    <link rel="stylesheet" type="text/css" href="index.css">
+  </head>
+  <body class="flex">
+    <div id="header" class="flex">
+      <div style="">
+        <span>Forecast Plus</span>
+        <br/>
+        <span class="note">Provides local and long range weather forecast</span>
+      </div>
+    </div>
+
+    <div id="content" class="flex">
+      <table width="100%">
+        <tr>
+          <td>Dimensions:</td>
+          <td>
+            <span>Popup width is </span> <input data-pref="popup.width" type="number" min="400"></input> <span>px</span>.
+            <p class="note">Acceptable popup width range is 300px to 800px.</p>
+            <p class="spacer"></p>
+            <span>Popup height is </span> <input data-pref="popup.height" type="number" min="500"></input> <span>px</span>.
+            <p class="note">Acceptable popup height range is 300px to 600px.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>Badge icon:</td>
+          <td>
+            <span>Check weather condition every </span> <input data-pref="weather.timeout" type="number" min="1"></input> <span>minutes</span>.
+            <p class="note">Minimum period is 1 minute.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>Badge number:</td>
+          <td>
+            <span>Use decimal point in the badge number:</span> <input data-pref="weather.accurate" type="checkbox"></input>
+            <p class="note">By default, the current temperature is round to the nearest whole number. Check this option if you prefer the extension to display decimal point as well. Wait for the next update for this change to take place.</p>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <script src="chrome/chrome.js"></script>
+    <script src="index.js"></script>
+
+  </body>
+</html>
