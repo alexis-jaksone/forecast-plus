@@ -70,7 +70,8 @@ app.observer(function (url) {
   ) {
     if (url !== config.weather.currentURL) {
       let unitChange = url.indexOf('setunits') !== -1;
-      if (!unitChange) {
+      let setPref = url.indexOf('setpref') !== -1;
+      if (!unitChange && !setPref) {
         config.weather.currentURL = url;
         checkNotifications();
       }
