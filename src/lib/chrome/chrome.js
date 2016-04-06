@@ -25,6 +25,7 @@ app.get = function (url, headers, data) {
     }
   };
   xhr.open(data ? "POST" : "GET", url, true);
+  xhr.setRequestHeader('Cache-Control', 'no-cache');
   for (var id in headers) {
     xhr.setRequestHeader(id, headers[id]);
   }

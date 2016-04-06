@@ -135,11 +135,13 @@ app.startup(function () {
   var version = config.welcome.version;
   if (app.version() !== version) {
     app.timer.setTimeout(function () {
-      app.tab.open(
-        'http://add0n.com/forecast-plus.html?v=' +
-        app.version() +
-        (version ? '&p=' + version + '&type=upgrade' : '&type=install')
-      );
+      if (config.welcome.open) {
+        app.tab.open(
+          'http://add0n.com/forecast-plus.html?v=' +
+          app.version() +
+          (version ? '&p=' + version + '&type=upgrade' : '&type=install')
+        );
+      }
       config.welcome.version = app.version();
     }, config.welcome.timeout);
   }

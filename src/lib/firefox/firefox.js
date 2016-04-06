@@ -179,6 +179,9 @@ exports.options = (function () {
 sp.on('openOptions', function() {
   exports.tab.open(data.url('options/index.html'));
 });
+sp.on('openFAQs', function() {
+  exports.tab.open('http://add0n.com/forecast-plus.html');
+});
 unload.when(function () {
   exports.tab.list().then(function (tabs) {
     tabs.forEach(function (tab) {

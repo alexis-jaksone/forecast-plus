@@ -1,24 +1,31 @@
 {
-  "fullName": "Forecast Plus",
+  "title": "Forecast Plus",
   "name": "iwforecastplus",
   "description": "Provides local and long range weather forecast",
   "id": "jid1-w3xH9kJhd3KJUp@jetpack",
   "license": "mozilla public license 1.1",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "main": "./lib/common.js",
-  "icon": "data/icons/32.png",
-  "icon64": "data/icons/64.png",
   "permissions": {
     "private-browsing": true,
     "cross-domain-content": [
       "http://www.wunderground.com/"
     ]
   },
+  "engines": {
+    "firefox": ">=38.0"
+  },
   "url": "http://add0n.com/forecast-plus.html",
   "preferences": [{
     "name": "openOptions",
-    "title": "Open Options",
-    "label": "Options",
+    "title": "Open Options (settings) Page",
+    "label": "Open",
+    "type": "control"
+  },
+  {
+    "name": "openFAQs",
+    "title": "Open FAQs Page",
+    "label": "Open",
     "type": "control"
   }]
 }

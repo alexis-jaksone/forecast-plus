@@ -1,22 +1,22 @@
 <!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">
 <html>
   <head>
-    <title>Options - Template Extension</title>
+    <title>Options - Weather Underground (Forecast Plus)</title>
     <meta charset="utf-8" />
     <link rel="icon" type="image/png" href="../icons/16.png">
     <link rel="stylesheet" type="text/css" href="index.css">
   </head>
   <body class="flex">
     <div id="header" class="flex">
-      <div style="">
-        <span>Forecast Plus</span>
+      <div>
+        <span>Weather Underground (Forecast Plus)</span>
         <br/>
         <span class="note">Provides local and long range weather forecast</span>
       </div>
     </div>
 
     <div id="content" class="flex">
-      <table width="100%">
+      <table>
         <tr>
           <td>Dimensions:</td>
           <td>
@@ -39,6 +39,13 @@
           <td>
             <span>Use decimal point in the badge number:</span> <input data-pref="weather.accurate" type="checkbox"></input>
             <p class="note">By default, the current temperature is round to the nearest whole number. Check this option if you prefer the extension to display decimal point as well. Wait for the next update for this change to take place.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>Updates:</td>
+          <td>
+            <span>Open FAQs page after each successful upgrade:</span> <input data-pref="welcome.open" type="checkbox"></input>
+            <p class="note">By default, Weather Underground (Forecast Plus) opens the FAQs page upon upgrade to notify you about the recent changes. You can uncheck this box to prevent this.</p>
           </td>
         </tr>
       </table>

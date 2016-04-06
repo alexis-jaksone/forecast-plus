@@ -46,6 +46,12 @@ config.welcome = {
   set version (val) {
     app.storage.write('version', val);
   },
+  get open () {
+    return app.storage.read('open') === 'false' ? false : true;
+  },
+  set open (val) {
+    app.storage.write('open', val);
+  },
   timeout: 3
 };
 

@@ -67,7 +67,7 @@ label>input {
 }
 
 body>* {
-  width: 800px;
+  width: 100%;
   display: -webkit-flex;
   display: flex;
 }
@@ -88,9 +88,14 @@ body>* {
   font-size: 140%;
 }
 
-
 table {
   border-collapse: collapse;
+  margin: 0 10px;
+  width: calc(100% - 20px);
+}
+#content {
+  max-width: 800px;
+  margin: 0 10px;
 }
 #content>table>tbody>tr {
   border-bottom: solid 1px #E5E5E5;
