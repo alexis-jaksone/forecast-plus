@@ -1,5 +1,16 @@
 var app = {};
 
+if (!Promise.defer) {
+  Promise.defer = function () {
+    let deferred = {};
+    let promise = new Promise(function (resolve, reject) {
+      deferred.resolve = resolve;
+      deferred.reject  = reject;
+    });
+    deferred.promise = promise;
+    return deferred;
+  };
+}
 app.Promise = Promise;
 
 app.storage = {
@@ -59,7 +70,7 @@ app.button = (function () {
     },
     set badge (val) {
       chrome.browserAction.setBadgeText({
-        text: (val ? val : "") + ""
+        text:  isNaN(val) ? '' : val + ''
       });
     }
   }
