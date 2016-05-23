@@ -224,7 +224,15 @@ exports.observer = function (callback) {
       if (topic === 'http-on-modify-request') {
         try {
           let httpChannel = subject.QueryInterface(Ci.nsIHttpChannel);
-          callback(httpChannel.URI.spec);
+          let loadInfo = httpChannel.loadInfo;
+          if (loadInfo) {
+            let rawtype = loadInfo.externalContentPolicyType !== undefined ?
+              loadInfo.externalContentPolicyType : loadInfo.contentPolicyType;
+            if (rawtype === 6 || rawtype === 7) {
+              callback(httpChannel.URI.spec);
+            }
+          }
+
         }
         catch (e) {}
       }

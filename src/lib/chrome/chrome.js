@@ -163,7 +163,9 @@ app.options = {
 
 app.observer = function (callback) {
   var listener = function (details) {
-    callback(details.url, details.type === 'main_frame' || details.type === 'sub_frame');
+    if (details.type === 'main_frame' || details.type === 'sub_frame') {
+      callback(details.url);
+    }
   };
   chrome.webRequest.onBeforeRequest.addListener(listener, {
     urls: ['<all_urls>']

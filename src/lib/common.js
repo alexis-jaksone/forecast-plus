@@ -83,13 +83,15 @@ app.observer(function (url) {
     url.startsWith('https://www.wunderground.com/weather-forecast/') ||
     url.startsWith('http://www.wunderground.com/cgi-bin/findweather/getForecast') ||
     url.startsWith('https://www.wunderground.com/cgi-bin/findweather/getForecast') ||
-    (url.startsWith('https://www.wunderground.com') && url.indexOf('zmw:') !== -1)
+    (url.startsWith('https://www.wunderground.com') && url.indexOf('zmw:') !== -1) ||
+    (url.startsWith('https://www.wunderground.com') && url.indexOf('weather-station') !== -1) ||
+    (url.startsWith('https://www.wunderground.com') && url.indexOf('weatherstation') !== -1)
   ) {
     if (url !== config.weather.currentURL) {
       let unitChange = url.indexOf('setunits') !== -1;
       let setPref = url.indexOf('setpref') !== -1;
       if (!unitChange && !setPref) {
-        // make sure url is okay
+        //console.error(url);
         config.weather.currentURL = url;
         checkNotifications();
       }
