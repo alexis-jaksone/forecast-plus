@@ -1,23 +1,34 @@
 'use strict';
 
-var self             = require('sdk/self'),
-    data             = self.data,
-    sp               = require('sdk/simple-prefs'),
-    Request          = require('sdk/request').Request,
-    prefs            = sp.prefs,
-    pageMod          = require('sdk/page-mod'),
-    tabs             = require('sdk/tabs'),
-    timers           = require('sdk/timers'),
-    loader           = require('@loader/options'),
-    array            = require('sdk/util/array'),
-    unload           = require('sdk/system/unload'),
-    Worker           = require('sdk/content/worker').Worker,  // jshint ignore:line
+var self = require('sdk/self'),
+    data = self.data,
+    sp = require('sdk/simple-prefs'),
+    Request = require('sdk/request').Request,
+    prefs = sp.prefs,
+    pageMod = require('sdk/page-mod'),
+    tabs = require('sdk/tabs'),
+    timers = require('sdk/timers'),
+    loader = require('@loader/options'),
+    array = require('sdk/util/array'),
+    unload = require('sdk/system/unload'),
+    Worker = require('sdk/content/worker').Worker,  // jshint ignore:line
+    browserWindows = require('sdk/windows').browserWindows,
+    {viewFor} = require('sdk/view/core'),
     {resolve, defer} = require('sdk/core/promise'),
-    {ToggleButton}   = require('sdk/ui/button/toggle'),
-    {Cc, Ci}         = require('chrome'),
-    config           = require('../config');
+    {ToggleButton} = require('sdk/ui/button/toggle'),
+    {Cc, Ci} = require('chrome'),
+    {on, off, once, emit} = require('sdk/event/core'),
+    config = require('../config');
 
 var nsIObserverService = Cc['@mozilla.org/observer-service;1'].getService(Ci.nsIObserverService);
+
+// Event Emitter
+exports.on = on.bind(null, exports);
+exports.once = once.bind(null, exports);
+exports.emit = emit.bind(null, exports);
+exports.removeListener = function removeListener (type, listener) {
+  off(exports, type, listener);
+};
 
 //toolbar button
 exports.button = (function () {
@@ -40,7 +51,9 @@ exports.button = (function () {
     },
     set badge (val) { // jshint ignore:line
       button.badge = val + '';
+      button.badgeColor = config.badge.color;
     },
+    color: () => button.badgeColor = config.badge.color,
     obj: button
   };
 })();
@@ -101,7 +114,12 @@ exports.get = function (url, headers, data) {
     headers: headers || {},
     content: data,
     onComplete: function (response) {
-      d.resolve(response.text);
+      if (response.status >= 400) {
+        d.reject(response.status);
+      }
+      else {
+        d.resolve(response.text);
+      }
     }
   })[data ? 'post' : 'get']();
   return d.promise;
@@ -125,6 +143,14 @@ exports.tab = {
       temp.push(tab);
     }
     return resolve(temp);
+  },
+  options: function () {
+    for each (var tab in tabs) {
+      if (tab.url.startsWith(self.data.url(''))) {
+        tab.close();
+      }
+    }
+    tabs.open(self.data.url('options/index.html'));
   }
 };
 
@@ -175,21 +201,20 @@ exports.options = (function () {
     receive: (id, callback) => options_arr.push([id, callback])
   };
 })();
-
-sp.on('openOptions', function() {
-  exports.tab.open(data.url('options/index.html'));
+unload.when(function (e) {
+  if (e === 'shutdown') {
+    return;
+  }
+  for each (var tab in tabs) {
+    if (tab && tab.url && tab.url.startsWith(self.data.url(''))) {
+      tab.close();
+    }
+  }
 });
+
+sp.on('openOptions', exports.tab.options);
 sp.on('openFAQs', function() {
   exports.tab.open('http://add0n.com/forecast-plus.html');
-});
-unload.when(function () {
-  exports.tab.list().then(function (tabs) {
-    tabs.forEach(function (tab) {
-      if (tab.url.indexOf(data.url('')) === 0) {
-        tab.close();
-      }
-    });
-  });
 });
 
 // webRequest

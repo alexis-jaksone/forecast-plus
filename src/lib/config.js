@@ -39,6 +39,19 @@ config.popup = {
   }
 };
 
+config.badge = {
+  get color () {
+    return app.storage.read('color') || '#485a81';
+  },
+  set color (val) {
+    if (val[0] !== '#' && val[0] !== 'r') {
+      val = '';
+    }
+    app.storage.write('color', val);
+    app.emit('color-changed');
+  }
+};
+
 config.welcome = {
   get version () {
     return app.storage.read('version');

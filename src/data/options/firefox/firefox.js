@@ -13,3 +13,4 @@ var background = {
 var manifest = {
   url: self.options.base
 };
+

@@ -8,6 +8,18 @@ if (isFirefox) {
   var config = require('./config');
 }
 /**** wrapper (end) ****/
+function guess () {
+  return app.get('http://www.wunderground.com/?MR=1').then(function (content) {
+    let tmp = content.split('wui.bootstrapped.citypage');
+    if (tmp && tmp[1]) {
+      let zmw = /zmw\:\s*[\'\"]([\d\w\.]+)[\'\"]/.exec(tmp[1]);
+      if (zmw && zmw.length) {
+        config.weather.currentURL = 'http://www.wunderground.com/q/zmw:' + zmw[1];
+        checkNotifications();
+      }
+    }
+  }, function () {});
+}
 
 var checkNotifications = (function () {
   let id, oURL, oTime;
@@ -52,26 +64,32 @@ var checkNotifications = (function () {
         `${Math.round((temperature - 32) * 5 / 9)}\u00B0C or ${temperature}\u00B0F`;
       let tooltip = `Forecast Plus \n\nTemperature: ${unit}\nLocation: ${location || '--'}\nFeels Like: ${feelsLike || '--'}`;
       app.button.label = tooltip.trim();
-    }, function () {});
+    }, function (e) {
+      if (e === 404) {
+        config.weather.currentURL = '';
+        guess();
+      }
+    });
     id = app.timer.setTimeout(checkNotifications, 1000 * 60 * config.weather.timeout);
     oTime = time;
     oURL = url;
   };
 })();
-
 app.observer(function (url) {
   if (
-    url.indexOf('http://www.wunderground.com/q/') === 0 ||
-    url.indexOf('https://www.wunderground.com/q/') === 0 ||
-    url.indexOf('http://www.wunderground.com/weather-forecast/') === 0 ||
-    url.indexOf('https://www.wunderground.com/weather-forecast/') === 0 ||
-    url.indexOf('http://www.wunderground.com/cgi-bin/findweather/getForecast') === 0 ||
-    url.indexOf('https://www.wunderground.com/cgi-bin/findweather/getForecast') === 0
+    url.startsWith('http://www.wunderground.com/q/') ||
+    url.startsWith('https://www.wunderground.com/q/') ||
+    url.startsWith('http://www.wunderground.com/weather-forecast/') ||
+    url.startsWith('https://www.wunderground.com/weather-forecast/') ||
+    url.startsWith('http://www.wunderground.com/cgi-bin/findweather/getForecast') ||
+    url.startsWith('https://www.wunderground.com/cgi-bin/findweather/getForecast') ||
+    (url.startsWith('https://www.wunderground.com') && url.indexOf('zmw:') !== -1)
   ) {
     if (url !== config.weather.currentURL) {
       let unitChange = url.indexOf('setunits') !== -1;
       let setPref = url.indexOf('setpref') !== -1;
       if (!unitChange && !setPref) {
+        // make sure url is okay
         config.weather.currentURL = url;
         checkNotifications();
       }
@@ -86,16 +104,7 @@ if (config.weather.currentURL) {
   checkNotifications();
 }
 else {
-  app.get('http://www.wunderground.com/?MR=1').then(function (content) {
-    let tmp = content.split('wui.bootstrapped.citypage');
-    if (tmp && tmp[1]) {
-      let zmw = /zmw\:\s*[\'\"]([\d\w\.]+)[\'\"]/.exec(tmp[1]);
-      if (zmw && zmw.length) {
-        config.weather.currentURL = 'http://www.wunderground.com/q/zmw:' + zmw[1];
-        checkNotifications();
-      }
-    }
-  }, function () {});
+  guess();
 }
 
 // options
@@ -130,6 +139,14 @@ app.popup.receive('open-faq', function () {
   app.tab.open('http://add0n.com/forecast-plus.html?type=context');
   app.popup.hide();
 });
+app.popup.receive('open-options', function () {
+  app.tab.options();
+  app.popup.hide();
+});
+app.popup.receive('refresh-location', function () {
+  config.weather.currentURL = '';
+  guess().then(() => app.popup.send('load', config.weather.url));
+});
 // welcome
 app.startup(function () {
   var version = config.welcome.version;
@@ -146,3 +163,5 @@ app.startup(function () {
     }, config.welcome.timeout);
   }
 });
+// prefs changes
+app.on('color-changed', app.button.color);

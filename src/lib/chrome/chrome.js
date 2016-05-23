@@ -1,4 +1,4 @@
-var app = {};
+var app = new EventEmitter();
 
 if (!Promise.defer) {
   Promise.defer = function () {
@@ -72,6 +72,14 @@ app.button = (function () {
       chrome.browserAction.setBadgeText({
         text:  isNaN(val) ? '' : val + ''
       });
+      chrome.browserAction.setBadgeBackgroundColor({
+        color: config.badge.color
+      });
+    },
+    color: function () {
+      chrome.browserAction.setBadgeBackgroundColor({
+        color: config.badge.color
+      });
     }
   }
 })();
@@ -110,8 +118,19 @@ app.tab = {
       d.resolve(tabs);
     });
     return d.promise;
+  },
+  options: function () {
+    let optionsUrl = chrome.extension.getURL('data/options/index.html');
+
+    chrome.tabs.query({url: optionsUrl}, function (tabs) {
+      if (tabs.length) {
+        chrome.tabs.update(tabs[0].id, {active: true});
+      } else {
+        chrome.tabs.create({url: optionsUrl});
+      }
+    });
   }
-}
+};
 
 app.version = function () {
   return chrome[chrome.runtime && chrome.runtime.getManifest ? "runtime" : "extension"].getManifest().version;
@@ -120,6 +139,8 @@ app.version = function () {
 app.timer = window;
 
 app.DOMParser = DOMParser;
+
+app.getURL = (path) => chrome.runtime.getURL('/data/' + path);
 
 app.options = {
   send: function (id, data) {

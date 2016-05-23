@@ -2,7 +2,7 @@
   "name": "Forecast Plus",
   "short_name": "iwforecastplus",
   "description": "Provides local and long range weather forecast",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "manifest_version": 2,
   "permissions": [
     "tabs",
