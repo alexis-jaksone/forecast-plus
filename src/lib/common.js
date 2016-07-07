@@ -39,13 +39,23 @@ var checkNotifications = (function () {
       let doc = parser.parseFromString(content, 'text/html');
       let temperature = doc.getElementById('curTemp');
       let cUnit = true;
+      let icon = doc.querySelector('#curIcon img');
+      if (icon) {
+        app.button.icon('https:' + icon.getAttribute('src'));
+      }
       if (temperature) {
         let tmp = /([\d\-\.]+)/.exec(temperature.textContent);
         cUnit = temperature.textContent.indexOf('F') === -1;
         if (tmp && tmp.length) {
           temperature = config.weather.accurate ? tmp[1] : Math.round(tmp[1]);
-          app.button.badge = temperature;
+          if (isNaN(temperature)) {
+            temperature = '-';
+          }
+          else {
+            app.button.badge = temperature;
+          }
         }
+        config.weather.lastValidURL = url;
       }
       let feelsLike = (function (elem) {
         if (elem) {
@@ -66,8 +76,13 @@ var checkNotifications = (function () {
       app.button.label = tooltip.trim();
     }, function (e) {
       if (e === 404) {
-        config.weather.currentURL = '';
-        guess();
+        if (config.weather.lastValidURL) {
+          config.weather.currentURL = config.weather.lastValidURL;
+        }
+        else {
+          config.weather.currentURL = '';
+          guess();
+        }
       }
     });
     id = app.timer.setTimeout(checkNotifications, 1000 * 60 * config.weather.timeout);

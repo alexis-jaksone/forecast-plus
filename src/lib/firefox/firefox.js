@@ -12,8 +12,6 @@ var self = require('sdk/self'),
     array = require('sdk/util/array'),
     unload = require('sdk/system/unload'),
     Worker = require('sdk/content/worker').Worker,  // jshint ignore:line
-    browserWindows = require('sdk/windows').browserWindows,
-    {viewFor} = require('sdk/view/core'),
     {resolve, defer} = require('sdk/core/promise'),
     {ToggleButton} = require('sdk/ui/button/toggle'),
     {Cc, Ci} = require('chrome'),
@@ -46,6 +44,7 @@ exports.button = (function () {
     }
   });
   return {
+    obj: button,
     set label (val) { // jshint ignore:line
       button.label = val;
     },
@@ -54,7 +53,9 @@ exports.button = (function () {
       button.badgeColor = config.badge.color;
     },
     color: () => button.badgeColor = config.badge.color,
-    obj: button
+    icon: (url) => {
+      exports.popup.obj.port.emit('icon', url);
+    }
   };
 })();
 
@@ -78,8 +79,10 @@ exports.popup = (function () {
       });
     }
   });
+  popup.port.on('icon', (url) => exports.button.obj.icon = url);
 
   return {
+    obj: popup,
     send: (id, data) => popup.port.emit(id, data),
     receive: (id, callback) => popup.port.on(id, callback),
     show: () => popup.show({

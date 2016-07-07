@@ -69,6 +69,12 @@ config.welcome = {
 };
 
 config.weather = {
+  get lastValidURL () {
+    return app.storage.read('last-valid-url');
+  },
+  set lastValidURL (val) {
+    app.storage.write('last-valid-url', val);
+  },
   get currentURL () {
     return app.storage.read('current-url');
   },
@@ -80,7 +86,7 @@ config.weather = {
     return url ? url : 'http://www.wunderground.com/';
   },
   get timeout () {
-    return +app.storage.read('timeout') || 3;
+    return +app.storage.read('timeout') || 5;
   },
   set timeout (val) {
     val = +val;

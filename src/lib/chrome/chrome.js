@@ -66,7 +66,7 @@ app.button = (function () {
     set label (val) {
       chrome.browserAction.setTitle({
         title: val
-      })
+      });
     },
     set badge (val) {
       chrome.browserAction.setBadgeText({
@@ -80,8 +80,24 @@ app.button = (function () {
       chrome.browserAction.setBadgeBackgroundColor({
         color: config.badge.color
       });
+    },
+    icon: function (url) {
+      let img = document.querySelector('img');
+      let canvas = document.querySelector('canvas');
+      let ctx = canvas.getContext('2d');
+      img.onload = function() {
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        if (canvas.width && canvas.height) {
+          ctx.drawImage(img, 0, 0);
+          chrome.browserAction.setIcon({
+            imageData: ctx.getImageData(0, 0, canvas.width, canvas.height)
+          });
+        }
+      };
+      img.src = url;
     }
-  }
+  };
 })();
 
 app.popup = {
