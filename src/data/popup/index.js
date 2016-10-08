@@ -1,22 +1,24 @@
-/* global self, background */
+/*******************************************************************************
+    Weather Underground (Forecast Plus) - local and long range weather forecast.
+
+    Copyright (C) 2014-2016 Alexis Jaksone
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the Mozilla Public License as published by
+    the Mozilla Foundation, either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Mozilla Public License for more details.
+    You should have received a copy of the Mozilla Public License
+    along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
+
+    Home: http://add0n.com/forecast-plus.html
+    GitHub: https://github.com/alexis-jaksone/forecast-plus/
+*/
+/* global background */
 'use strict';
-
-function init () {
-  background.send('load');
-}
-
-if (typeof self !== 'undefined' && self.port) {
-  self.port.on('show', init);
-}
-
-if (typeof chrome !== 'undefined') {
-  background.receive('resize', function (o) {
-    document.body.style.width = o.width + 'px';
-    //document.body.style.height = (o.height - 250) + 'px';
-    document.querySelector('html').style.height = (o.height - 20) + 'px';
-  });
-  window.addEventListener('load', init, false);
-}
 
 background.receive('load', function (url) {
   document.querySelector('iframe').src = url;
@@ -28,5 +30,8 @@ document.addEventListener('click', function (e) {
   var cmd = e.target.dataset.cmd;
   if (cmd) {
     background.send(cmd);
+  }
+  if (cmd === 'refresh') {
+    window.close();
   }
 });

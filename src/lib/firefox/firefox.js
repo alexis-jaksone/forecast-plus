@@ -1,3 +1,22 @@
+/*******************************************************************************
+    Weather Underground (Forecast Plus) - local and long range weather forecast.
+
+    Copyright (C) 2014-2016 Alexis Jaksone
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the Mozilla Public License as published by
+    the Mozilla Foundation, either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Mozilla Public License for more details.
+    You should have received a copy of the Mozilla Public License
+    along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
+
+    Home: http://add0n.com/forecast-plus.html
+    GitHub: https://github.com/alexis-jaksone/forecast-plus/
+*/
 'use strict';
 
 var self = require('sdk/self'),
@@ -12,11 +31,14 @@ var self = require('sdk/self'),
     array = require('sdk/util/array'),
     unload = require('sdk/system/unload'),
     Worker = require('sdk/content/worker').Worker,  // jshint ignore:line
-    {resolve, defer} = require('sdk/core/promise'),
+    {defer} = require('sdk/core/promise'),
     {ToggleButton} = require('sdk/ui/button/toggle'),
     {Cc, Ci} = require('chrome'),
     {on, off, once, emit} = require('sdk/event/core'),
     config = require('../config');
+
+var {WebRequest} = require('resource://gre/modules/WebRequest.jsm');
+var {MatchPattern} = require('resource://gre/modules/MatchPattern.jsm');
 
 var nsIObserverService = Cc['@mozilla.org/observer-service;1'].getService(Ci.nsIObserverService);
 
@@ -79,6 +101,7 @@ exports.popup = (function () {
       });
     }
   });
+
   popup.port.on('icon', (url) => exports.button.obj.icon = url);
 
   return {
@@ -92,6 +115,13 @@ exports.popup = (function () {
     }),
     hide: () => popup.hide()
   };
+})();
+
+exports.online = (function () {
+  let callback = function () {};
+
+  exports.popup.receive('online', () => callback());
+  return c => callback = c;
 })();
 
 exports.storage = {
@@ -110,12 +140,10 @@ exports.storage = {
   }
 };
 
-exports.get = function (url, headers, data) {
-  var d = defer();
+exports.get = function (url) {
+  let d = defer();
   new Request({
     url: url,
-    headers: headers || {},
-    content: data,
     onComplete: function (response) {
       if (response.status >= 400) {
         d.reject(response.status);
@@ -124,31 +152,16 @@ exports.get = function (url, headers, data) {
         d.resolve(response.text);
       }
     }
-  })[data ? 'post' : 'get']();
+  }).get();
   return d.promise;
 };
 
 exports.tab = {
-  open: function (url, inBackground, inCurrent) {
-    if (inCurrent) {
-      tabs.activeTab.url = url;
-    }
-    else {
-      tabs.open({
-        url: url,
-        inBackground: typeof inBackground === 'undefined' ? false : inBackground
-      });
-    }
-  },
-  list: function () {
-    var temp = [];
-    for each (var tab in tabs) {
-      temp.push(tab);
-    }
-    return resolve(temp);
+  open: function (url) {
+    tabs.open({url});
   },
   options: function () {
-    for each (var tab in tabs) {
+    for each (let tab in tabs) {
       if (tab.url.startsWith(self.data.url(''))) {
         tab.close();
       }
@@ -167,7 +180,7 @@ exports.DOMParser = function () {
 };
 
 exports.options = (function () {
-  var workers = [], options_arr = [];
+  let workers = [], options_arr = [];
   pageMod.PageMod({
     include: data.url('options/index.html'),
     contentScriptFile: data.url('options/index.js'),
@@ -221,30 +234,14 @@ sp.on('openFAQs', function() {
 });
 
 // webRequest
-exports.observer = function (callback) {
-  let httpRequestObserver = {
-    observe: function(subject, topic) {
-      if (topic === 'http-on-modify-request') {
-        try {
-          let httpChannel = subject.QueryInterface(Ci.nsIHttpChannel);
-          let loadInfo = httpChannel.loadInfo;
-          if (loadInfo) {
-            let rawtype = loadInfo.externalContentPolicyType !== undefined ?
-              loadInfo.externalContentPolicyType : loadInfo.contentPolicyType;
-            if (rawtype === 6 || rawtype === 7) {
-              callback(httpChannel.URI.spec);
-            }
-          }
-
-        }
-        catch (e) {}
-      }
+exports.webRequest = {
+  onCompleted: {
+    addListener: function (callback, matches, prop) {
+      let pattern = new MatchPattern(matches.urls);
+      WebRequest.onCompleted.addListener(callback, {urls: pattern}, prop);
+      unload.when(() => WebRequest.onCompleted.removeListener(callback));
     }
-  };
-  nsIObserverService.addObserver(httpRequestObserver, 'http-on-modify-request', false);
-  unload.when(function () {
-    nsIObserverService.removeObserver(httpRequestObserver, 'http-on-modify-request');
-  });
+  }
 };
 
 // startup

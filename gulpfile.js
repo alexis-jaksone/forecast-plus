@@ -40,7 +40,7 @@ gulp.task('chrome-build', function () {
       return false;
     }
     if (f.relative.split('/').length === 1) {
-      return f.relative === 'manifest.json' ? true : false;
+      return (f.relative === 'manifest.json' || f.relative === 'License.txt') ? true : false;
     }
     return true;
   }))
@@ -94,7 +94,7 @@ gulp.task('firefox-build', function () {
       return false;
     }
     if (f.relative.split('/').length === 1) {
-      return ['package.json', 'chrome.manifest'].indexOf(f.relative) !== -1;
+      return ['package.json', 'chrome.manifest', 'License.txt'].indexOf(f.relative) !== -1;
     }
     return true;
   }))

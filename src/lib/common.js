@@ -1,13 +1,30 @@
+/*******************************************************************************
+    Weather Underground (Forecast Plus) - local and long range weather forecast.
+
+    Copyright (C) 2014-2016 Alexis Jaksone
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the Mozilla Public License as published by
+    the Mozilla Foundation, either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Mozilla Public License for more details.
+    You should have received a copy of the Mozilla Public License
+    along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
+
+    Home: http://add0n.com/forecast-plus.html
+    GitHub: https://github.com/alexis-jaksone/forecast-plus/
+*/
+
 'use strict';
 
-/**** wrapper (start) ****/
-var isFirefox = typeof require !== 'undefined';
+var app = app || require('./firefox/firefox');
+var config = config || require('./config');
 
-if (isFirefox) {
-  var app = require('./firefox/firefox');
-  var config = require('./config');
-}
-/**** wrapper (end) ****/
+var checkNotifications;
+
 function guess () {
   return app.get('http://www.wunderground.com/?MR=1').then(function (content) {
     let tmp = content.split('wui.bootstrapped.citypage');
@@ -21,7 +38,7 @@ function guess () {
   }, function () {});
 }
 
-var checkNotifications = (function () {
+checkNotifications = (function () {
   let id, oURL, oTime;
 
   return function (forced) {
@@ -30,7 +47,7 @@ var checkNotifications = (function () {
       return;
     }
     let time = (new Date()).getTime();
-    if (oURL && oTime && oURL === url && time - oTime < 60 * 1000 && !forced) {
+    if (oURL && oTime && oURL === url && time - oTime < 59 * 1000 && !forced) {
       return;
     }
     app.timer.clearTimeout(id);
@@ -72,7 +89,7 @@ var checkNotifications = (function () {
       catch (e) {}
       let unit = cUnit ? `${temperature}\u00B0C or ${Math.round(temperature * 9 / 5 + 32)}\u00B0F` :
         `${Math.round((temperature - 32) * 5 / 9)}\u00B0C or ${temperature}\u00B0F`;
-      let tooltip = `Forecast Plus \n\nTemperature: ${unit}\nLocation: ${location || '--'}\nFeels Like: ${feelsLike || '--'}`;
+      let tooltip = `Forecast Plus \n\nLast Updated: ${(new Date()).toLocaleTimeString()}\nTemperature: ${unit}\nLocation: ${location || '--'}\nFeels Like: ${feelsLike || '--'}`;
       app.button.label = tooltip.trim();
     }, function (e) {
       if (e === 404) {
@@ -90,23 +107,31 @@ var checkNotifications = (function () {
     oURL = url;
   };
 })();
-app.observer(function (url) {
+
+(function (callback) {
+  app.webRequest.onCompleted.addListener((details) => {
+    if (details.type === 'main_frame' || details.type === 'sub_frame') {
+      callback(details.url);
+    }
+  }, {
+    urls: [
+      'http://www.wunderground.com/*',
+      'https://www.wunderground.com/*'
+    ]
+  }, []);
+})(function (url) {
   if (
-    url.startsWith('http://www.wunderground.com/q/') ||
-    url.startsWith('https://www.wunderground.com/q/') ||
-    url.startsWith('http://www.wunderground.com/weather-forecast/') ||
-    url.startsWith('https://www.wunderground.com/weather-forecast/') ||
-    url.startsWith('http://www.wunderground.com/cgi-bin/findweather/getForecast') ||
-    url.startsWith('https://www.wunderground.com/cgi-bin/findweather/getForecast') ||
-    (url.startsWith('https://www.wunderground.com') && url.indexOf('zmw:') !== -1) ||
-    (url.startsWith('https://www.wunderground.com') && url.indexOf('weather-station') !== -1) ||
-    (url.startsWith('https://www.wunderground.com') && url.indexOf('weatherstation') !== -1)
+    url.indexOf('zmw:') !== -1 ||
+    url.indexOf('weather-station') !== -1 ||
+    url.indexOf('weatherstation') !== -1 ||
+    url.indexOf('/q/') !== -1 ||
+    url.indexOf('/weather-forecast/') !== -1 ||
+    url.indexOf('/cgi-bin/findweather/getForecast') !== -1
   ) {
     if (url !== config.weather.currentURL) {
       let unitChange = url.indexOf('setunits') !== -1;
       let setPref = url.indexOf('setpref') !== -1;
       if (!unitChange && !setPref) {
-        //console.error(url);
         config.weather.currentURL = url;
         checkNotifications();
       }
@@ -117,12 +142,19 @@ app.observer(function (url) {
   }
 });
 
-if (config.weather.currentURL) {
-  checkNotifications();
+function init (forced) {
+  if (config.weather.currentURL) {
+    checkNotifications(forced);
+  }
+  else {
+    guess();
+  }
 }
-else {
-  guess();
-}
+
+init();
+app.online(function () {
+  app.timer.setTimeout(init, 5 * 1000, true);
+});
 
 // options
 app.options.receive('changed', function (o) {
@@ -161,8 +193,14 @@ app.popup.receive('open-options', function () {
   app.popup.hide();
 });
 app.popup.receive('refresh-location', function () {
+  app.button.badge = '';
   config.weather.currentURL = '';
   guess().then(() => app.popup.send('load', config.weather.url));
+});
+app.popup.receive('refresh', function () {
+  app.button.badge = '';
+  app.popup.hide();
+  init(true);
 });
 // welcome
 app.startup(function () {
@@ -182,3 +220,6 @@ app.startup(function () {
 });
 // prefs changes
 app.on('color-changed', app.button.color);
+app.on('timeout-changed', function () {
+  app.timer.setTimeout(checkNotifications, 15 * 1000, true);
+});

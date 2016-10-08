@@ -80,6 +80,9 @@ body>* {
   height: 94px;
   justify-content: center;
   -webkit-justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #header>div>span {
   padding-left: 105px;
