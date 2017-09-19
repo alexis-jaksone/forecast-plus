@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Options :: Weather Underground (Forecast Plus)</title>
+  <style>
+    body {
+      padding: 10px;
+      font-family: arial,sans-serif;
+      font-size: 13px;
+    }
+    label {
+      display: block;
+      padding: 3px 0;
+    }
+    input[type=number] {
+      width: 50px;
+      outline: none;
+    }
+    label p {
+      font-size: 80%;
+      color: #bfbfbf;
+      margin: 5px 10px;
+    }
+    textarea {
+      margin-top: 5px;
+      width: 100%;
+      height: 100px;
+    }
+  </style>
+</head>
+
+<body>
+  <label>
+    Popup size (in pixels):
+    <input id="width" type="number" min="300"> x <input id="height" type="number" min="300">
+    <p>Acceptable range is (300px, 800px)</p>
+  </label>
+  <label>
+    Check weather condition every (in minutes):
+    <input id="timeout" type="number" min="3">
+    <p>minimum acceptable value is 3 minute</p>
+  </label>
+  <p>
+    Badge background color code is
+    <input id="color" type="color">
+  </p>
+  <label>
+    <input id="accurate" type="checkbox">
+    Use decimal point in the badge number
+    <p>By default, the current temperature is round to the nearest whole number. Check this option if you prefer the extension to display decimal point as well. Wait for the next update for this change to take place</p>
+  </label>
+  <label>
+    <input id="faqs" type="checkbox">
+    Open FAQs page after each successful upgrade
+    <p>By default, Weather Underground (Forecast Plus) opens the FAQs page upon upgrade to notify you about the recent changes. You can uncheck this box to prevent this</p>
+  </label>
+
+  <p>
+    <button id="save">Save</button>
+    <span id="status"></span>
+  </p>
+
+  <script src="index.js"></script>
+</body>
+</html>

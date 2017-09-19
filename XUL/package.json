@@ -1,0 +1,65 @@
+{
+  "title": "Weather Underground (Forecast Plus)",
+  "name": "iwforecastplus",
+  "description": "Provides local and long range weather forecast",
+  "id": "jid1-w3xH9kJhd3KJUp@jetpack",
+  "license": "MPLv2.0",
+  "version": "0.2.4",
+  "main": "./lib/common.js",
+  "permissions": {
+    "private-browsing": true,
+    "cross-domain-content": [
+      "http://www.wunderground.com/",
+      "https://icons.wxug.com/"
+    ],
+    "multiprocess": true
+  },
+  "engines": {
+    "firefox": ">=38.0"
+  },
+  "url": "http://add0n.com/forecast-plus.html?from=context",
+  "preferences": [
+    {
+      "type": "integer",
+      "name": "width",
+      "value": 800,
+      "title": "Popup width (in pixel)",
+      "description": "minimum acceptable value is 300px"
+    },
+    {
+      "type": "integer",
+      "name": "height",
+      "value": 520,
+      "title": "Popup height (in pixel)",
+      "description": "minimum acceptable value is 300px"
+    },
+    {
+      "type": "integer",
+      "name": "timeout",
+      "value": 10,
+      "title": "Check weather condition every (in minutes)",
+      "description": "minimum acceptable value is 1 minute"
+    },
+    {
+      "type": "color",
+      "name": "color",
+      "value": "#485a81",
+      "title": "Badge background color code is"
+    },
+    {
+      "type": "bool",
+      "name": "accurate",
+      "value": false,
+      "title": "Use decimal point in the badge number",
+      "description": "By default, the current temperature is round to the nearest whole number. Check this option if you prefer the extension to display decimal point as well. Wait for the next update for this change to take place"
+    },
+    {
+      "type": "bool",
+      "name": "faqs",
+      "value": true,
+      "title": "Open FAQs page after each successful upgrade",
+      "description": "By default, Weather Underground (Forecast Plus) opens the FAQs page upon upgrade to notify you about the recent changes. You can uncheck this box to prevent this"
+    }
+
+  ]
+}
