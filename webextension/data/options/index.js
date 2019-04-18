@@ -1,4 +1,4 @@
-/*******************************************************************************
+/*
     Weather Underground (Forecast Plus) - local and long range weather forecast.
 
     Copyright (C) 2014-2017 Alexis Jaksone
@@ -22,29 +22,31 @@
 
 var log = document.getElementById('status');
 
-function restore () {
+function restore() {
   chrome.storage.local.get({
     width: 800,
     height: 520,
     timeout: 10,
     color: '#485a81',
     accurate: false,
-    faqs: true
-  }, (prefs) => {
-    Object.keys(prefs).forEach (name => {
+    faqs: true,
+    metric: true
+  }, prefs => {
+    Object.keys(prefs).forEach(name => {
       document.getElementById(name)[typeof prefs[name] === 'boolean' ? 'checked' : 'value'] = prefs[name];
     });
   });
 }
 
-function save () {
-  let prefs = {
+function save() {
+  const prefs = {
     width: Math.min(800, Math.max(document.getElementById('width').value, 300)),
     height: Math.min(800, Math.max(document.getElementById('height').value, 300)),
     timeout: Math.max(document.getElementById('timeout').value, 3),
     color: document.getElementById('color').value,
     accurate: document.getElementById('accurate').checked,
-    faqs: document.getElementById('faqs').checked
+    faqs: document.getElementById('faqs').checked,
+    metric: document.getElementById('metric').checked
   };
 
   chrome.storage.local.set(prefs, () => {
@@ -64,3 +66,22 @@ document.getElementById('save').addEventListener('click', () => {
     setTimeout(() => log.textContent = '', 750);
   }
 });
+
+// reset
+document.getElementById('reset').addEventListener('click', e => {
+  if (e.detail === 1) {
+    log.textContent = 'Double-click to reset!';
+    window.setTimeout(() => log.textContent = '', 750);
+  }
+  else {
+    localStorage.clear();
+    chrome.storage.local.clear(() => {
+      chrome.runtime.reload();
+      window.close();
+    });
+  }
+});
+// support
+document.getElementById('support').addEventListener('click', () => chrome.tabs.create({
+  url: chrome.runtime.getManifest().homepage_url + '?rd=donate'
+}));

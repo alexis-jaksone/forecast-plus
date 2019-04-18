@@ -1,4 +1,4 @@
-/*******************************************************************************
+/**
     Weather Underground (Forecast Plus) - local and long range weather forecast.
 
     Copyright (C) 2014-2017 Alexis Jaksone
@@ -14,15 +14,12 @@
     You should have received a copy of the Mozilla Public License
     along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
 
-    Home: http://add0n.com/forecast-plus.html
     GitHub: https://github.com/alexis-jaksone/forecast-plus/
 */
 
 'use strict';
 
-function log() {
-  //console.log(...arguments);
-}
+var log = (...args) => false && console.log(...args);
 
 var button = ((canvas, image) => {
   document.body.appendChild(canvas);
@@ -35,11 +32,14 @@ var button = ((canvas, image) => {
       if ((!val && val !== 0) || isNaN(val)) {
         val = '';
       }
-      else if (!accurate) {
+      else if (accurate) {
+        val = Number(val).toFixed(1);
+      }
+      else {
         val = Math.round(Number(val));
       }
       chrome.browserAction.setBadgeText({
-        text:  String(val)
+        text: String(val)
       });
     },
     tooltip: title => chrome.browserAction.setTitle({title}),
@@ -80,13 +80,26 @@ var button = ((canvas, image) => {
   };
 })(document.createElement('canvas'), document.createElement('img'));
 
+function query(doc, selector) {
+  switch (selector) {
+  case 'current-temperature':
+    return doc.querySelector('city-current-conditions .current-temp') || doc.getElementById('curTemp');
+  case 'icon':
+    return doc.querySelector('city-current-conditions img') || doc.querySelector('#curIcon img');
+  case 'feels-like':
+    return doc.querySelector('city-current-conditions .feels-like span') || doc.getElementById('curFeel');
+  case 'location':
+    return doc.querySelector('.city-header h1') || doc.querySelector('#location h1');
+  }
+}
+
 function validate(url) {
   return new Promise((resolve, reject) => {
     const req = new XMLHttpRequest();
     req.open('GET', url);
     req.responseType = 'document';
     req.onload = () => {
-      const curTemp = req.response.querySelector('city-current-conditions .current-temp');
+      const curTemp = query(req.response, 'current-temperature');
       if (curTemp) {
         resolve();
       }
@@ -107,9 +120,9 @@ function update(url) {
     req.responseType = 'document';
     req.onload = () => {
       const doc = req.response;
-      let temperature = doc.querySelector('city-current-conditions .current-temp');
+      let temperature = query(doc, 'current-temperature');
       let cUnit = true;
-      const icon = doc.querySelector('city-current-conditions img');
+      const icon = query(doc, 'icon');
 
       if (temperature) {
         const tmp = /([\d\-.]+)/.exec(temperature.textContent);
@@ -125,13 +138,14 @@ function update(url) {
         if (elem) {
           const tmp = /([\d\-.]+)/.exec(elem.textContent);
           if (tmp && tmp.length) {
-            return tmp[1] + (cUnit ? '\u00B0C' : '\u00B0F');
+            return cUnit ? `${tmp[1]}\u00B0C or ${Math.round(tmp[1] * 9 / 5 + 32)}\u00B0F` :
+              `${Math.round((tmp[1] - 32) * 5 / 9)}\u00B0C or ${tmp[1]}\u00B0F`;
           }
         }
-      })(doc.querySelector('city-current-conditions .feels-like span'));
+      })(query(doc, 'feels-like'));
       let location;
       try {
-        location = doc.querySelector('.city-header h1').textContent.trim();
+        location = query(doc, 'location').textContent.trim();
       }
       catch (e) {}
       const unit = cUnit ? `${temperature}\u00B0C or ${Math.round(temperature * 9 / 5 + 32)}\u00B0F` :
@@ -140,12 +154,14 @@ function update(url) {
       resolve({
         icon: icon && icon.getAttribute('src'),
         temperature,
-        tooltip: `Forecast Plus
+        metric: cUnit,
+        tooltip: temperature ? `Forecast Plus
 
-Last Updated: ${(new Date()).toLocaleTimeString()}
 Temperature: ${unit}
+Feels Like: ${feelsLike || '--'}
 Location: ${location || '--'}
-Feels Like: ${feelsLike || '--'}`
+
+Last Updated: ${(new Date()).toLocaleTimeString()}` : 'To adjust badge icon: Open popup -> Find location -> Press "View Full Forecast"'
       });
     };
     req.onerror = e => {
@@ -177,6 +193,7 @@ function schedule(delay = 2) {
 
 chrome.runtime.onMessage.addListener(request => {
   if (request.method === 'top-level') {
+    //
     const url = request.url;
     if (
       url.indexOf('/weather/') !== -1 ||
@@ -192,7 +209,7 @@ chrome.runtime.onMessage.addListener(request => {
         log('validating the new URL', url);
         validate(url).then(
           () => {
-            log('new URL is valid');
+            log('new URL is valid', 'Metric', request.metric);
             chrome.storage.local.set({url});
           },
           e => log('Invalid URL', url, e)
@@ -212,8 +229,18 @@ chrome.alarms.onAlarm.addListener(() => {
     accurate: false
   }, prefs => {
     update(prefs.url).then(
-      ({temperature, icon, tooltip}) => {
-        button.badge(temperature, prefs.accurate);
+      ({temperature, icon, tooltip, metric}) => {
+        chrome.storage.local.get({
+          metric: true
+        }, prefs => {
+          if (prefs.metric && !metric) {
+            temperature = (temperature - 32) * 5 / 9;
+          }
+          if (!prefs.metric && metric) {
+            temperature = temperature * 9 / 5 + 32;
+          }
+          button.badge(temperature, prefs.accurate);
+        });
         button.tooltip(tooltip);
         if (icon) {
           button.icon(icon);
@@ -227,40 +254,21 @@ chrome.alarms.onAlarm.addListener(() => {
   });
 });
 
-(callback => {
+{
+  const callback = () => {
+    chrome.storage.local.get({
+      color: '#485a81'
+    }, prefs => {
+      chrome.browserAction.setBadgeBackgroundColor({
+        color: prefs.color
+      });
+    });
+    //
+    schedule(2);
+  };
   chrome.runtime.onInstalled.addListener(callback);
   chrome.runtime.onStartup.addListener(callback);
-})(() => {
-  chrome.storage.local.get({
-    color: '#485a81'
-  }, prefs => {
-    chrome.browserAction.setBadgeBackgroundColor({
-      color: prefs.color
-    });
-  });
-  //
-  schedule(2);
-  // FAQs & Feedback
-  chrome.storage.local.get({
-    'version': null,
-    'faqs': navigator.userAgent.indexOf('Firefox') === -1
-  }, prefs => {
-    const version = chrome.runtime.getManifest().version;
-
-    if (prefs.version ? (prefs.faqs && prefs.version !== version) : true) {
-      chrome.storage.local.set({version}, () => {
-        chrome.tabs.create({
-          url: 'http://add0n.com/forecast-plus.html?version=' + version +
-            '&type=' + (prefs.version ? ('upgrade&p=' + prefs.version) : 'install')
-        });
-      });
-    }
-  });
-  {
-    const {name, version} = chrome.runtime.getManifest();
-    chrome.runtime.setUninstallURL('http://add0n.com/feedback.html?name=' + name + '&version=' + version);
-  }
-});
+}
 //
 chrome.idle.onStateChanged.addListener(s => {
   if (s === 'active') {
@@ -270,8 +278,10 @@ chrome.idle.onStateChanged.addListener(s => {
 });
 window.addEventListener('online', () => schedule());
 //
+chrome.windows.onCreated.addListener(() => schedule());
+//
 chrome.storage.onChanged.addListener(prefs => {
-  if (prefs.url || prefs.accurate || prefs.timeout) {
+  if (prefs.url || prefs.accurate || prefs.timeout || prefs.metric) {
     schedule();
   }
   if (prefs.color) {
@@ -280,3 +290,29 @@ chrome.storage.onChanged.addListener(prefs => {
     });
   }
 });
+// FAQs
+{
+  const {onInstalled, setUninstallURL, getManifest} = chrome.runtime;
+  const {name, version} = getManifest();
+  const page = getManifest().homepage_url;
+  onInstalled.addListener(({reason, previousVersion}) => {
+    chrome.storage.local.get({
+      'faqs': true,
+      'last-update': 0
+    }, prefs => {
+      if (reason === 'install' || (prefs.faqs && reason === 'update')) {
+        const doUpdate = (Date.now() - prefs['last-update']) / 1000 / 60 / 60 / 24 > 45;
+        if (doUpdate && previousVersion !== version) {
+          chrome.tabs.create({
+            url: page + '?version=' + version +
+              (previousVersion ? '&p=' + previousVersion : '') +
+              '&type=' + reason,
+            active: reason === 'install'
+          });
+          chrome.storage.local.set({'last-update': Date.now()});
+        }
+      }
+    });
+  });
+  setUninstallURL(page + '?rd=feedback&name=' + encodeURIComponent(name) + '&version=' + version);
+}

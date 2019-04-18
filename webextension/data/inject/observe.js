@@ -1,4 +1,4 @@
-/*******************************************************************************
+/*
     Weather Underground (Forecast Plus) - local and long range weather forecast.
 
     Copyright (C) 2014-2017 Alexis Jaksone
@@ -14,13 +14,12 @@
     You should have received a copy of the Mozilla Public License
     along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
 
-    Home: http://add0n.com/forecast-plus.html
     GitHub: https://github.com/alexis-jaksone/forecast-plus/
 */
 
 'use strict';
 
-chrome.storage.local.get({
+document.addEventListener('DOMContentLoaded', () => chrome.storage.local.get({
   url: 'https://www.wunderground.com/'
 }, prefs => {
   const url = document.location.href;
@@ -35,14 +34,4 @@ chrome.storage.local.get({
       method: 'schedule'
     });
   }
-});
-
-window.addEventListener('load', () => {
-  const a = document.querySelector('a[_ngcontent-c2].button');
-  if (a && a.href) {
-    chrome.runtime.sendMessage({
-      method: 'top-level',
-      url: a.href
-    });
-  }
-});
+}));

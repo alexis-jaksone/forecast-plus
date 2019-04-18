@@ -1,4 +1,4 @@
-/*******************************************************************************
+/*
     Weather Underground (Forecast Plus) - local and long range weather forecast.
 
     Copyright (C) 2014-2017 Alexis Jaksone
@@ -23,16 +23,13 @@
 var iframe = document.querySelector('iframe');
 
 iframe.addEventListener('load', () => {
-  console.error('loaded');
   iframe.dataset.loaded = true;
 });
 
 chrome.storage.local.get({
-  url: 'https://www.wunderground.com/',
   width: 800,
   height: 520
 }, prefs => {
-  iframe.src = prefs.url;
   document.body.style.width = prefs.width + 'px';
   document.body.style.height = prefs.height + 'px';
 });
@@ -40,9 +37,24 @@ chrome.storage.local.get({
 document.addEventListener('click', e => {
   const {url, cmd} = e.target.dataset;
   if (url) {
-    chrome.tabs.create({url});
+    if (url === 'fetch-url') {
+      return chrome.storage.local.get({
+        url: 'https://www.wunderground.com/'
+      }, prefs => chrome.tabs.create({
+        url: prefs.url
+      }));
+    }
+    chrome.tabs.create({
+      url: url === 'faqs' ? chrome.runtime.getManifest().homepage_url : url
+    });
   }
   else if (cmd === 'settings') {
     chrome.runtime.openOptionsPage();
   }
 });
+
+window.addEventListener('DOMContentLoaded', () => chrome.storage.local.get({
+  url: 'https://www.wunderground.com/'
+}, prefs => window.setTimeout(() => {
+  iframe.src = prefs.url;
+}, 100)));

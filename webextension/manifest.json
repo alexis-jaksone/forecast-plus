@@ -1,12 +1,10 @@
 {
   "name": "Weather Forecast",
-  "short_name": "iwforecastplus",
   "description": "Provides local and long range weather forecast using Weather Underground",
-  "version": "0.3.2",
+  "version": "0.3.4",
   "manifest_version": 2,
   "permissions": [
     "storage",
-    "tabs",
     "alarms",
     "idle",
     "*://www.wunderground.com/*"
@@ -34,14 +32,24 @@
     "run_at": "document_start",
     "all_frames": true
   }],
-  "homepage_url": "http://add0n.com/forecast-plus.html?from=context",
+  "homepage_url": "https://add0n.com/forecast-plus.html",
   "icons": {
     "16": "data/icons/16.png",
+    "24": "data/icons/24.png",
+    "32": "data/icons/32.png",
     "48": "data/icons/48.png",
-    "128": "data/icons/128.png"
+    "64": "data/icons/64.png",
+    "128": "data/icons/128.png",
+    "256": "data/icons/256.png"
   },
   "options_ui": {
     "page": "data/options/index.html",
     "chrome_style": true
+  },
+  "applications": {
+    "gecko": {
+      "id": "{98ab7bc7-0e75-430c-92cb-d27a0e48b23d}",
+      "strict_min_version": "52.0"
+    }
   }
 }
