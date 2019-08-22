@@ -88,7 +88,9 @@ function query(doc, selector) {
       doc.querySelector('.cur-temp') ||
       doc.getElementById('curTemp');
   case 'icon':
-    return doc.querySelector('city-current-conditions img') || doc.querySelector('#curIcon img');
+    return doc.querySelector('city-current-conditions img') ||
+    doc.querySelector('.condition-icon img') ||
+    doc.querySelector('#curIcon img');
   case 'feels-like':
     return doc.querySelector('.feels-like') ||
       doc.querySelector('.feelslike') ||
