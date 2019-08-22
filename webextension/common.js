@@ -19,9 +19,9 @@
 
 'use strict';
 
-var log = (...args) => false && console.log(...args);
+const log = (...args) => false && console.log(...args);
 
-var button = ((canvas, image) => {
+const button = ((canvas, image) => {
   document.body.appendChild(canvas);
   image.crossOrigin = 'Anonymous';
   document.body.appendChild(image);
@@ -83,13 +83,23 @@ var button = ((canvas, image) => {
 function query(doc, selector) {
   switch (selector) {
   case 'current-temperature':
-    return doc.querySelector('city-current-conditions .current-temp') || doc.getElementById('curTemp');
+    return doc.querySelector('.current-temp') ||
+      doc.querySelector('city-current-conditions .current-temp') ||
+      doc.querySelector('.cur-temp') ||
+      doc.getElementById('curTemp');
   case 'icon':
     return doc.querySelector('city-current-conditions img') || doc.querySelector('#curIcon img');
   case 'feels-like':
-    return doc.querySelector('city-current-conditions .feels-like span') || doc.getElementById('curFeel');
+    return doc.querySelector('.feels-like') ||
+      doc.querySelector('.feelslike') ||
+      doc.querySelector('city-current-conditions .feels-like span') ||
+      doc.getElementById('curFeel');
   case 'location':
-    return doc.querySelector('.city-header h1') || doc.querySelector('#location h1');
+    return doc.querySelector('.city-header h1 span') ||
+      doc.querySelector('#location h1') ||
+      doc.querySelector('.condition-location');
+  case 'full-forecast':
+    return doc.querySelector('.fct-button');
   }
 }
 
@@ -113,20 +123,51 @@ function validate(url) {
 }
 
 function update(url) {
-  log('updating from', url);
   return new Promise((resolve, reject) => {
     const req = new XMLHttpRequest();
     req.open('GET', url);
     req.responseType = 'document';
-    req.onload = () => {
+    req.onload = async () => {
       const doc = req.response;
+      // try to switch to full-forecast
+      if (url === 'https://www.wunderground.com/') {
+        const button = query(doc, 'full-forecast');
+        if (button && button.href) {
+          const prefs = await new Promise(resolve => chrome.storage.local.get({
+            'forecast-button-invalid-url': ''
+          }, resolve));
+          if (prefs['forecast-button-invalid-url'] !== button.href) {
+            if (await onMessage({
+              method: 'top-level',
+              url: button.href
+            })) {
+              return;
+            }
+            else { // blacklist the URL
+              chrome.storage.local.set({
+                'forecast-button-invalid-url': button.href
+              });
+            }
+          }
+          else {
+            log('forecast-button\'s URL is in blacklist');
+          }
+        }
+      }
+
+
       let temperature = query(doc, 'current-temperature');
       let cUnit = true;
       const icon = query(doc, 'icon');
-
       if (temperature) {
         const tmp = /([\d\-.]+)/.exec(temperature.textContent);
         cUnit = temperature.textContent.indexOf('F') === -1;
+        if (temperature.classList.contains('funits')) {
+          cUnit = false;
+        }
+        else if (temperature.classList.contains('cunits')) {
+          cUnit = true;
+        }
         if (tmp && tmp.length) {
           temperature = tmp[1];
         }
@@ -134,7 +175,7 @@ function update(url) {
           temperature = '';
         }
       }
-      const feelsLike = (function(elem) {
+      const feelsLike = (elem => {
         if (elem) {
           const tmp = /([\d\-.]+)/.exec(elem.textContent);
           if (tmp && tmp.length) {
@@ -191,7 +232,7 @@ function schedule(delay = 2) {
   });
 }
 
-chrome.runtime.onMessage.addListener(request => {
+const onMessage = request => {
   if (request.method === 'top-level') {
     //
     const url = request.url;
@@ -207,12 +248,16 @@ chrome.runtime.onMessage.addListener(request => {
     ) {
       if (!/set\w/.test(url)) { // setunits, setpref
         log('validating the new URL', url);
-        validate(url).then(
+        return validate(url).then(
           () => {
             log('new URL is valid', 'Metric', request.metric);
             chrome.storage.local.set({url});
+            return true;
           },
-          e => log('Invalid URL', url, e)
+          e => {
+            log('Invalid URL', url, e);
+            return false;
+          }
         );
       }
     }
@@ -220,7 +265,8 @@ chrome.runtime.onMessage.addListener(request => {
   else if (request.method === 'schedule') {
     schedule();
   }
-});
+};
+chrome.runtime.onMessage.addListener(onMessage);
 
 chrome.alarms.onAlarm.addListener(() => {
   log('alarm event');

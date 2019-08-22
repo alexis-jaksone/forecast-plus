@@ -1,7 +1,7 @@
 {
   "name": "Weather Forecast",
   "description": "Provides local and long range weather forecast using Weather Underground",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "manifest_version": 2,
   "permissions": [
     "storage",
@@ -45,11 +45,5 @@
   "options_ui": {
     "page": "data/options/index.html",
     "chrome_style": true
-  },
-  "applications": {
-    "gecko": {
-      "id": "{98ab7bc7-0e75-430c-92cb-d27a0e48b23d}",
-      "strict_min_version": "52.0"
-    }
   }
 }
