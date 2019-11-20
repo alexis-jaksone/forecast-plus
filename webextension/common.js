@@ -26,12 +26,12 @@ chrome.webRequest.onHeadersReceived.addListener(info => {
   for (let i = responseHeaders.length - 1; i >= 0; --i) {
     const header = responseHeaders[i].name.toLowerCase();
     if (header == 'x-frame-options' || header == 'frame-options') {
-      responseHeaders.splice(i, 1); // Remove header
+      responseHeaders.splice(i, 1);
     }
   }
   return {responseHeaders};
 }, {
-  urls: ['*://www.wunderground.com/*'], // Pattern to match all http(s) pages
+  urls: ['*://www.wunderground.com/*'],
   types: ['sub_frame']
 }, ['blocking', 'responseHeaders']);
 
