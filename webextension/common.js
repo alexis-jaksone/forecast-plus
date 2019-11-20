@@ -21,6 +21,20 @@
 
 const log = (...args) => false && console.log(...args);
 
+chrome.webRequest.onHeadersReceived.addListener(info => {
+  const responseHeaders = info.responseHeaders;
+  for (let i = responseHeaders.length - 1; i >= 0; --i) {
+    const header = responseHeaders[i].name.toLowerCase();
+    if (header == 'x-frame-options' || header == 'frame-options') {
+      responseHeaders.splice(i, 1); // Remove header
+    }
+  }
+  return {responseHeaders};
+}, {
+  urls: ['*://www.wunderground.com/*'], // Pattern to match all http(s) pages
+  types: ['sub_frame']
+}, ['blocking', 'responseHeaders']);
+
 const button = ((canvas, image) => {
   document.body.appendChild(canvas);
   image.crossOrigin = 'Anonymous';
