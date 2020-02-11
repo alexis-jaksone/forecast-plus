@@ -34,4 +34,21 @@ document.addEventListener('DOMContentLoaded', () => chrome.storage.local.get({
       method: 'schedule'
     });
   }
+  // try to detect weather URL in homepage
+  const a = document.querySelector('.fct-button');
+  if (a) {
+    console.log(a, 1111);
+    const resizeObserver = new ResizeObserver(() => {
+      const a = document.querySelector('.fct-button');
+      if (a.href !== 'https://www.wunderground.com/null') {
+        chrome.runtime.sendMessage({
+          method: 'top-level',
+          url: a.href
+        });
+        resizeObserver.disconnect();
+      }
+    });
+    resizeObserver.observe(document.body);
+  }
 }));
+

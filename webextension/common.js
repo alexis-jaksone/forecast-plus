@@ -19,7 +19,7 @@
 
 'use strict';
 
-const log = (...args) => false && console.log(...args);
+const log = (...args) => true && console.log(...args);
 
 chrome.webRequest.onHeadersReceived.addListener(info => {
   const responseHeaders = info.responseHeaders;
@@ -166,7 +166,7 @@ function update(url) {
             }
           }
           else {
-            log('forecast-button\'s URL is in blacklist');
+            log('forecast-button\'s URL is in blacklist', button.href);
           }
         }
       }
@@ -252,6 +252,7 @@ const onMessage = request => {
   if (request.method === 'top-level') {
     //
     const url = request.url;
+    console.log(request);
     if (
       url.indexOf('/weather/') !== -1 ||
       url.indexOf('zmw:') !== -1 ||
@@ -260,7 +261,8 @@ const onMessage = request => {
       url.indexOf('/q/') !== -1 ||
       url.indexOf('/weather-forecast/') !== -1 ||
       url.indexOf('/global/stations/') !== -1 ||
-      url.indexOf('/cgi-bin/findweather/getForecast') !== -1
+      url.indexOf('/cgi-bin/findweather/getForecast') !== -1 ||
+      url.indexOf('?utm_source=HomeCard') !== -1
     ) {
       if (!/set\w/.test(url)) { // setunits, setpref
         log('validating the new URL', url);
@@ -352,7 +354,7 @@ chrome.storage.onChanged.addListener(prefs => {
     });
   }
 });
-// FAQs
+// FAQs & Feedback
 {
   const {onInstalled, setUninstallURL, getManifest} = chrome.runtime;
   const {name, version} = getManifest();
