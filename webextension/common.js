@@ -19,21 +19,45 @@
 
 'use strict';
 
-const log = (...args) => true && console.log(...args);
+const log = (...args) => false && console.log(...args);
 
 chrome.webRequest.onHeadersReceived.addListener(info => {
-  const responseHeaders = info.responseHeaders;
-  for (let i = responseHeaders.length - 1; i >= 0; --i) {
-    const header = responseHeaders[i].name.toLowerCase();
-    if (header == 'x-frame-options' || header == 'frame-options') {
-      responseHeaders.splice(i, 1);
+  if (info.tabId === -1) {
+    const responseHeaders = info.responseHeaders;
+    for (let i = responseHeaders.length - 1; i >= 0; --i) {
+      const header = responseHeaders[i].name.toLowerCase();
+      if (header == 'x-frame-options' || header == 'frame-options') {
+        responseHeaders.splice(i, 1);
+      }
     }
+    return {responseHeaders};
   }
-  return {responseHeaders};
 }, {
   urls: ['*://www.wunderground.com/*'],
-  types: ['sub_frame']
+  types: ['sub_frame', 'xmlhttprequest']
 }, ['blocking', 'responseHeaders']);
+
+// get notified when homepage is loaded
+const ports = [];
+chrome.runtime.onConnect.addListener(port => {
+  ports.push(port);
+  port.onDisconnect.addListener(() => {
+    const index = ports.indexOf(port);
+    if (index !== -1) {
+      ports.splice(index, 1);
+    }
+  });
+});
+chrome.webRequest.onHeadersReceived.addListener(() => {
+  for (const port of ports) {
+    port.postMessage({
+      method: 'detect-station'
+    });
+  }
+}, {
+  urls: ['*://api.weather.com/*/dateTime*'],
+  types: ['xmlhttprequest']
+}, []);
 
 const button = ((canvas, image) => {
   document.body.appendChild(canvas);
@@ -252,7 +276,6 @@ const onMessage = request => {
   if (request.method === 'top-level') {
     //
     const url = request.url;
-    console.log(request);
     if (
       url.indexOf('/weather/') !== -1 ||
       url.indexOf('zmw:') !== -1 ||
@@ -348,35 +371,64 @@ chrome.storage.onChanged.addListener(prefs => {
   if (prefs.url || prefs.accurate || prefs.timeout || prefs.metric) {
     schedule();
   }
+  if (prefs.metric) {
+    chrome.contextMenus.update(prefs.metric.newValue ? 'use.metric' : 'use.imperial', {
+      checked: true
+    });
+  }
   if (prefs.color) {
     chrome.browserAction.setBadgeBackgroundColor({
       color: prefs.color.newValue
     });
   }
 });
-// FAQs & Feedback
-{
-  const {onInstalled, setUninstallURL, getManifest} = chrome.runtime;
-  const {name, version} = getManifest();
-  const page = getManifest().homepage_url;
-  onInstalled.addListener(({reason, previousVersion}) => {
-    chrome.storage.local.get({
-      'faqs': true,
-      'last-update': 0
-    }, prefs => {
-      if (reason === 'install' || (prefs.faqs && reason === 'update')) {
-        const doUpdate = (Date.now() - prefs['last-update']) / 1000 / 60 / 60 / 24 > 45;
-        if (doUpdate && previousVersion !== version) {
-          chrome.tabs.create({
-            url: page + '?version=' + version +
-              (previousVersion ? '&p=' + previousVersion : '') +
-              '&type=' + reason,
-            active: reason === 'install'
-          });
-          chrome.storage.local.set({'last-update': Date.now()});
-        }
-      }
-    });
+
+/* context menus */
+chrome.storage.local.get({
+  metric: true
+}, prefs => {
+  chrome.contextMenus.create({
+    title: 'Metric Unit (C)',
+    id: 'use.metric',
+    contexts: ['browser_action'],
+    type: 'radio',
+    checked: prefs.metric
   });
-  setUninstallURL(page + '?rd=feedback&name=' + encodeURIComponent(name) + '&version=' + version);
+  chrome.contextMenus.create({
+    title: 'Imperial Unit (F)',
+    id: 'use.imperial',
+    contexts: ['browser_action'],
+    type: 'radio',
+    checked: prefs.metric === false
+  });
+});
+chrome.contextMenus.onClicked.addListener(info => chrome.storage.local.set({
+  metric: info.menuItemId === 'use.metric'
+}));
+
+/* FAQs & Feedback */
+{
+  const {management, runtime: {onInstalled, setUninstallURL, getManifest}, storage, tabs} = chrome;
+  if (navigator.webdriver !== true) {
+    const page = getManifest().homepage_url;
+    const {name, version} = getManifest();
+    onInstalled.addListener(({reason, previousVersion}) => {
+      management.getSelf(({installType}) => installType === 'normal' && storage.local.get({
+        'faqs': true,
+        'last-update': 0
+      }, prefs => {
+        if (reason === 'install' || (prefs.faqs && reason === 'update')) {
+          const doUpdate = (Date.now() - prefs['last-update']) / 1000 / 60 / 60 / 24 > 45;
+          if (doUpdate && previousVersion !== version) {
+            tabs.create({
+              url: page + '?version=' + version + (previousVersion ? '&p=' + previousVersion : '') + '&type=' + reason,
+              active: reason === 'install'
+            });
+            storage.local.set({'last-update': Date.now()});
+          }
+        }
+      }));
+    });
+    setUninstallURL(page + '?rd=feedback&name=' + encodeURIComponent(name) + '&version=' + version);
+  }
 }
