@@ -1,7 +1,7 @@
 /*
     Weather Underground (Forecast Plus) - local and long range weather forecast.
 
-    Copyright (C) 2014-2017 Alexis Jaksone
+    Copyright (C) 2014-2021 Alexis Jaksone
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the Mozilla Public License as published by
@@ -23,6 +23,7 @@ chrome.runtime.sendMessage({
   method: 'validate',
   href: location.href
 });
+
 if (window.top !== window) {
   // try {
   //   navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -36,5 +37,3 @@ if (window.top !== window) {
   //   console.warn(e);
   // }
 }
-
-console.log(111);

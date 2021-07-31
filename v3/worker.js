@@ -1,7 +1,7 @@
 /**
     Weather Underground (Forecast Plus) - local and long range weather forecast.
 
-    Copyright (C) 2014-2017 Alexis Jaksone
+    Copyright (C) 2014-2021 Alexis Jaksone
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the Mozilla Public License as published by
@@ -19,6 +19,8 @@
 /* global importScripts, sax */
 
 importScripts('sax.js');
+
+const log = (...args) => console.log(new Date().toISOString(), ...args);
 
 const query = (code, query, stop = true) => {
   return new Promise((resolve, reject) => {
@@ -133,7 +135,6 @@ const extract = async href => {
         return c.indexOf('wu-value') !== -1 || c.indexOf('temp') !== -1;
       }
     })?.text;
-    console.log(r.feels);
     if (r.feels) {
       r.feels = parseFloat(r.feels);
     }
@@ -165,16 +166,22 @@ const extract = async href => {
   return;
 };
 
-const validate = async url => {
-  console.log('validating', url);
-  const o = await extract(url);
-  if (!o || isNaN(o.value)) {
-    throw Error('not a valid station');
-  }
-  chrome.storage.local.set({
-    url
+const validate = url => {
+  chrome.storage.local.get({
+    url: ''
+  }, async prefs => {
+    if (prefs.url !== url) {
+      log('validating', url);
+      const o = await extract(url);
+      if (!o || isNaN(o.value)) {
+        throw Error('not a valid station');
+      }
+      chrome.storage.local.set({
+        url
+      });
+      log('looks good!', url);
+    }
   });
-  console.log('looks good!', url);
 };
 
 chrome.runtime.onMessage.addListener(request => {
@@ -182,20 +189,7 @@ chrome.runtime.onMessage.addListener(request => {
     validate(request.href);
   }
 });
-// extract('https://www.wunderground.com/weather/ca/montreal/IMONTREA66?utm_source=HomeCard&utm_content=Button&cm_ven=HomeCardButton').then(r => console.log(r));
-// extract('https://www.wunderground.com/weather/fr/teyran').then(r => console.log(r));
-// extract('https://www.wunderground.com/dashboard/pws/ITEHRANT19').then(r => console.log(r));
-// extract('https://www.wunderground.com/dashboard/pws/ISHEFF62?cm_ven=localwx_pwsdash').then(r => console.log(r));
-// extract('https://www.wunderground.com/weather/CYRQ').then(r => console.log(r));
-// extract('https://www.wunderground.com/weather/KDUJ').then(r => console.log(r));
-// extract('https://www.wunderground.com/weather/ca/windsor').then(r => console.log(r));
-// extract('https://www.wunderground.com/weather/us/oh/lakeside-marblehead/KOHLAKES15').then(r => console.log(r));
-// extract('https://www.wunderground.com/weather/ca/hampstead/IHAMPS1').then(r => console.log(r));
-// extract('https://www.wunderground.com/weather/ir/mehran').then(r => console.log(r));
-// extract('https://www.wunderground.com/weather/iq/diyala/IDIYAL3').then(r => console.log(r));
-// extract('https://www.wunderground.com/weather/ORBI').then(r => console.log(r));
-// extract('https://www.wunderground.com/weather/us/co/cotopaxi/KCOCOTOP43').then(r => console.log(r));
-// extract('https://www.wunderground.com/weather/us/co/canon-city/KCOCANON53').then(r => console.log(r));
+
 // extract('https://www.wunderground.com/weather/us/ca/san-francisco/37.78,-122.42').then(r => console.log(r));
 // extract('https://www.wunderground.com/weather/KCASANFR591').then(r => console.log(r));
 // extract('https://www.wunderground.com/dashboard/pws/ISOUTHHA2').then(r => console.log(r));
@@ -206,7 +200,7 @@ const update = () => chrome.storage.local.get({
   metric: true
 }, async prefs => {
   if (prefs.url && prefs.url !== 'https://www.wunderground.com/') {
-    console.log('update', prefs.url);
+    log('update', prefs.url);
     try {
       const o = await extract(prefs.url);
       if (prefs.metric && o.unit === 'F') {
@@ -249,10 +243,9 @@ Last Updated: ${(new Date()).toLocaleTimeString()}`;
       });
       // icon
       try {
-        const path = 'data/icons/assets/png/' + o.icon.split('/').pop().replace('.svg', '.png');
-        fetch(path).then(r => r.blob()).then(async b => {
+        const path = 'data/icons/assets/png/' + (o.icon || '').split('/').pop().replace('.svg', '.png');
+        await fetch(path).then(r => r.blob()).then(async b => {
           const img = await createImageBitmap(b);
-          console.log(img, b);
           const offscreen = new OffscreenCanvas(img.width, img.height);
           const ctx = offscreen.getContext('2d');
           ctx.drawImage(img, 0, 0, img.width, img.height);
@@ -282,7 +275,7 @@ Last Updated: ${(new Date()).toLocaleTimeString()}`;
         title: `To get badge notification, open popup -> Find location -> Press 'View Full Forecast'
 
 
-Error: + ${e.message}`
+Error: ${e.message}`
       });
 
       console.warn('Schedule job failed', e);
@@ -309,7 +302,7 @@ Error: + ${e.message}`
 
 // check
 const schedule = (delay = 2) => {
-  console.log('setting a new alarm', delay);
+  log('setting a new alarm', delay);
   chrome.action.setBadgeText({
     text: '...'
   });
@@ -338,6 +331,12 @@ chrome.storage.onChanged.addListener(ps => {
     });
   }
 });
+chrome.idle.onStateChanged.addListener(s => {
+  if (s === 'active') {
+    schedule();
+  }
+});
+chrome.windows.onCreated.addListener(() => schedule());
 
 chrome.alarms.onAlarm.addListener(o => o.name === 'timer' && update());
 
@@ -359,10 +358,22 @@ chrome.storage.local.get({
     type: 'radio',
     checked: prefs.metric === false
   });
+  chrome.contextMenus.create({
+    title: 'Refresh Weather',
+    id: 'refresh',
+    contexts: ['action']
+  });
 });
-chrome.contextMenus.onClicked.addListener(info => chrome.storage.local.set({
-  metric: info.menuItemId === 'use.metric'
-}));
+chrome.contextMenus.onClicked.addListener(info => {
+  if (info.menuItemId === 'refresh') {
+    schedule();
+  }
+  else {
+    chrome.storage.local.set({
+      metric: info.menuItemId === 'use.metric'
+    });
+  }
+});
 
 /* badge color */
 {

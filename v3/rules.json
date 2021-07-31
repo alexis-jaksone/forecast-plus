@@ -22,7 +22,7 @@
     ]
   },
   "condition": {
-    "urlFilter": "||api.weather.com",
+    "urlFilter": "https://api.weather.com/v3/location/near",
     "resourceTypes": ["xmlhttprequest"]
   }
 }]
