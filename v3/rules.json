@@ -1,0 +1,28 @@
+[{
+  "id": 1,
+  "priority": 1,
+  "action": {
+    "type": "modifyHeaders",
+    "responseHeaders": [
+      {"header": "x-frame-options", "operation": "remove"},
+      {"header": "frame-options", "operation": "remove"}
+    ]
+  },
+  "condition": {
+    "urlFilter": "||wunderground.com",
+    "resourceTypes": ["sub_frame", "xmlhttprequest"]
+  }
+}, {
+  "id": 2,
+  "priority": 1,
+  "action": {
+    "type": "modifyHeaders",
+    "requestHeaders": [
+      {"header": "referer", "operation": "set", "value": "https://www.wunderground.com/"}
+    ]
+  },
+  "condition": {
+    "urlFilter": "||api.weather.com",
+    "resourceTypes": ["xmlhttprequest"]
+  }
+}]

@@ -1,0 +1,54 @@
+{
+  "name": "Weather Forecast",
+  "description": "Provides local and long range weather forecast using Weather Underground",
+  "version": "0.5.0",
+  "manifest_version": 3,
+  "permissions": [
+    "declarativeNetRequest",
+    "storage",
+    "alarms",
+    "idle",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "*://www.wunderground.com/*",
+    "*://api.weather.com/*"
+  ],
+  "declarative_net_request" : {
+    "rule_resources" : [{
+      "id": "ruleset",
+      "enabled": true,
+      "path": "rules.json"
+    }]
+  },
+  "action": {
+    "default_popup": "data/popup/index.html",
+    "default_title": "To get badge notification, open popup -> Find location -> Press 'View Full Forecast'"
+  },
+  "background": {
+    "service_worker": "worker.js"
+  },
+  "content_scripts": [{
+    "matches": ["*://www.wunderground.com/*"],
+    "js": [
+      "data/inject/clean.js",
+      "data/inject/observe.js"
+    ],
+    "run_at": "document_start",
+    "all_frames": true
+  }],
+  "homepage_url": "https://add0n.com/forecast-plus.html",
+  "icons": {
+    "16": "data/icons/16.png",
+    "24": "data/icons/24.png",
+    "32": "data/icons/32.png",
+    "48": "data/icons/48.png",
+    "64": "data/icons/64.png",
+    "128": "data/icons/128.png",
+    "256": "data/icons/256.png"
+  },
+  "options_ui": {
+    "page": "data/options/index.html"
+  },
+  "minimum_chrome_version": "92"
+}

@@ -21,6 +21,12 @@
 
 const log = (...args) => false && console.log(...args);
 
+const isFirefox = /Firefox/.test(navigator.userAgent) || typeof InstallTrigger !== 'undefined';
+
+const prs = ['blocking', 'responseHeaders'];
+if (isFirefox === false) {
+  prs.push('extraHeaders');
+}
 chrome.webRequest.onHeadersReceived.addListener(info => {
   if (info.tabId === -1) {
     const responseHeaders = info.responseHeaders;
@@ -35,7 +41,7 @@ chrome.webRequest.onHeadersReceived.addListener(info => {
 }, {
   urls: ['*://www.wunderground.com/*'],
   types: ['sub_frame', 'xmlhttprequest']
-}, ['blocking', 'responseHeaders', 'extraHeaders']);
+}, prs);
 
 // get notified when homepage is loaded
 const ports = [];

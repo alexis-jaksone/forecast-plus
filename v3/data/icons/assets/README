@@ -1,0 +1,1 @@
+for i in *.svg ; do convert -transparent white  -density 600 -resize 64x64 "$i" "../png/${i%.*}.png" ; done
