@@ -91,7 +91,11 @@ const query = (code, query, stop = true) => {
 };
 
 const extract = async href => {
-  const r = await fetch(href);
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), 10000);
+  const r = await fetch(href, {
+    signal: controller.signal
+  });
   const content = await r.text();
 
   const type = href.indexOf('/pws/') === -1 ? 'nrm' : 'pws';
@@ -237,7 +241,7 @@ Temperature: ${o.value} °${o.unit}
 Feels Like: ${isNaN(o.feels) ? '--' : o.feels} °${o.unit}
 Location: ${o.location || '--'}
 
-Last Updated: ${(new Date()).toLocaleTimeString()}`;
+Last Updated: ${new Date().toLocaleString(navigator.language, {hour12: false})}`;
       chrome.action.setTitle({
         title
       });
@@ -301,11 +305,13 @@ Error: ${e.message}`
 });
 
 // check
-const schedule = (delay = 2) => {
-  log('setting a new alarm', delay);
-  chrome.action.setBadgeText({
-    text: '...'
-  });
+const schedule = (forced = false, delay = 0, reason = '') => {
+  log('new alarm; delay: ', delay, 'forced', forced, 'reason', reason);
+  if (forced) {
+    chrome.action.setBadgeText({
+      text: '...'
+    });
+  }
 
   chrome.storage.local.get({
     timeout: 10
@@ -314,11 +320,11 @@ const schedule = (delay = 2) => {
     periodInMinutes: prefs.timeout
   }));
 };
-chrome.runtime.onInstalled.addListener(() => schedule());
-chrome.runtime.onStartup.addListener(() => schedule());
+chrome.runtime.onInstalled.addListener(() => schedule(true, 0, 'installed'));
+chrome.runtime.onStartup.addListener(() => schedule(true, 2, 'startup'));
 chrome.storage.onChanged.addListener(ps => {
   if (ps.url || ps.timeout || ps.metric || ps.accurate) {
-    schedule();
+    schedule(true, 0, 'prefs');
   }
   if (ps.metric) {
     chrome.contextMenus.update(ps.metric.newValue ? 'use.metric' : 'use.imperial', {
@@ -333,10 +339,10 @@ chrome.storage.onChanged.addListener(ps => {
 });
 chrome.idle.onStateChanged.addListener(s => {
   if (s === 'active') {
-    schedule();
+    schedule(false, 2, 'idle');
   }
 });
-chrome.windows.onCreated.addListener(() => schedule());
+chrome.windows.onCreated.addListener(() => schedule(false, 0, 'window'));
 
 chrome.alarms.onAlarm.addListener(o => o.name === 'timer' && update());
 
@@ -366,7 +372,7 @@ chrome.storage.local.get({
 });
 chrome.contextMenus.onClicked.addListener(info => {
   if (info.menuItemId === 'refresh') {
-    schedule();
+    schedule(true, 0, 'user');
   }
   else {
     chrome.storage.local.set({
