@@ -92,7 +92,7 @@ const query = (code, query, stop = true) => {
 
 const extract = async href => {
   const controller = new AbortController();
-  setTimeout(() => controller.abort(), 10000);
+  setTimeout(() => controller.abort(), 120000);
   const r = await fetch(href, {
     signal: controller.signal
   });
@@ -152,6 +152,31 @@ const extract = async href => {
     if (icon && icon.child) {
       r.icon = icon.child({name: 'IMG'})?.attributes?.SRC;
     }
+    if (!icon && type === 'pws') {
+      const station = (await query(content, {
+        name: 'A',
+        match(n) {
+          return (n?.attributes?.CLASS || '').indexOf('location-name') !== -1;
+        }
+      }));
+      if (station) {
+        let href = 'https://www.wunderground.com' + station.attributes.HREF;
+        // this PWS points to another PWS or itself; try to guess the nearest station from homepage
+        if (station.attributes.HREF === '' || href.indexOf('/pws/') !== -1) {
+          try {
+            href = await guess();
+          }
+          catch (e) {}
+        }
+        if (href && href.indexOf('/pws/') === -1) {
+          try {
+            r.icon = await extract(href).then(n => n.icon);
+          }
+          catch (e) {}
+        }
+      }
+    }
+
     // location
     r.location = type === 'pws' ? (await query(content, {
       name: 'DIV',
@@ -169,6 +194,20 @@ const extract = async href => {
   }
   return;
 };
+
+const guess = () => fetch('https://www.wunderground.com/').then(r => r.text()).then(content => {
+  const hrefs = content.split('https://api.weather.com/').slice(1).map(s => {
+    return 'https://api.weather.com/' + s.split('&q;')[0].replaceAll('&a;', '&');
+  });
+  const near = hrefs.filter(s => s.indexOf('location/near') !== -1).shift();
+  if (near) {
+    return fetch(near).then(r => r.json()).then(j => {
+      if (j && j?.location?.stationId.length) {
+        return 'https://www.wunderground.com/weather/' + j.location.stationId[0];
+      }
+    });
+  }
+});
 
 const validate = url => {
   chrome.storage.local.get({
@@ -196,6 +235,9 @@ chrome.runtime.onMessage.addListener(request => {
 
 // extract('https://www.wunderground.com/weather/us/ca/san-francisco/37.78,-122.42').then(r => console.log(r));
 // extract('https://www.wunderground.com/weather/KCASANFR591').then(r => console.log(r));
+// extract('https://www.wunderground.com/weather/us/pa/havertown/KPAHAVER15').then(r => console.log(r));
+// extract('https://www.wunderground.com/dashboard/pws/KPAHAVER15?cm_ven=localwx_pwsdash').then(r => console.log(r));
+// PWS that points to itself (icon resolving uses guess)
 // extract('https://www.wunderground.com/dashboard/pws/ISOUTHHA2').then(r => console.log(r));
 
 const update = () => chrome.storage.local.get({
@@ -272,14 +314,22 @@ Last Updated: ${new Date().toLocaleString(navigator.language, {hour12: false})}`
       }
     }
     catch (e) {
-      chrome.action.setBadgeText({
-        text: 'E'
-      });
+      const v = await chrome.action.getBadgeText({});
+      // only display error when needed
+      if (v === '...' || v === '') {
+        chrome.action.setBadgeText({
+          text: 'E'
+        });
+        // let's try in 2 minutes
+        schedule(false, 2 * 60, 'error');
+      }
       chrome.action.setTitle({
         title: `To get badge notification, open popup -> Find location -> Press 'View Full Forecast'
 
 
-Error: ${e.message}`
+Error: ${e.message}
+
+Last Check: ${new Date().toLocaleString(navigator.language, {hour12: false})}`
       });
 
       console.warn('Schedule job failed', e);
@@ -287,20 +337,8 @@ Error: ${e.message}`
   }
   // try to extract location
   else {
-    console.log('Try to guess location');
-    fetch('https://www.wunderground.com/').then(r => r.text()).then(content => {
-      const hrefs = content.split('https://api.weather.com/').slice(1).map(s => {
-        return 'https://api.weather.com/' + s.split('&q;')[0].replaceAll('&a;', '&');
-      });
-      const near = hrefs.filter(s => s.indexOf('location/near') !== -1).shift();
-      if (near) {
-        fetch(near).then(r => r.json()).then(j => {
-          if (j && j?.location?.stationId.length) {
-            validate('https://www.wunderground.com/weather/' + j.location.stationId[0]);
-          }
-        });
-      }
-    });
+    log('Try to guess location');
+    guess().then(href => href && validate(href));
   }
 });
 
@@ -321,7 +359,7 @@ const schedule = (forced = false, delay = 0, reason = '') => {
   }));
 };
 chrome.runtime.onInstalled.addListener(() => schedule(true, 0, 'installed'));
-chrome.runtime.onStartup.addListener(() => schedule(true, 2, 'startup'));
+chrome.runtime.onStartup.addListener(() => schedule(true, 10, 'startup'));
 chrome.storage.onChanged.addListener(ps => {
   if (ps.url || ps.timeout || ps.metric || ps.accurate) {
     schedule(true, 0, 'prefs');
@@ -339,10 +377,10 @@ chrome.storage.onChanged.addListener(ps => {
 });
 chrome.idle.onStateChanged.addListener(s => {
   if (s === 'active') {
-    schedule(false, 2, 'idle');
+    schedule(false, 20, 'idle');
   }
 });
-chrome.windows.onCreated.addListener(() => schedule(false, 0, 'window'));
+// chrome.windows.onCreated.addListener(() => schedule(false, 0, 'window'));
 
 chrome.alarms.onAlarm.addListener(o => o.name === 'timer' && update());
 
