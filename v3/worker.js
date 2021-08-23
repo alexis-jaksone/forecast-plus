@@ -209,22 +209,21 @@ const guess = () => fetch('https://www.wunderground.com/').then(r => r.text()).t
   }
 });
 
-const validate = url => {
-  chrome.storage.local.get({
+const validate = async url => {
+  const prefs = await new Promise(resolve => chrome.storage.local.get({
     url: ''
-  }, async prefs => {
-    if (prefs.url !== url) {
-      log('validating', url);
-      const o = await extract(url);
-      if (!o || isNaN(o.value)) {
-        throw Error('not a valid station');
-      }
-      chrome.storage.local.set({
-        url
-      });
-      log('looks good!', url);
+  }, resolve));
+  if (prefs.url !== url) {
+    log('validating', url);
+    const o = await extract(url);
+    if (!o || isNaN(o.value)) {
+      throw Error('not a valid station');
     }
-  });
+    chrome.storage.local.set({
+      url
+    });
+    log('looks good!', url);
+  }
 };
 
 chrome.runtime.onMessage.addListener(request => {
@@ -240,13 +239,21 @@ chrome.runtime.onMessage.addListener(request => {
 // PWS that points to itself (icon resolving uses guess)
 // extract('https://www.wunderground.com/dashboard/pws/ISOUTHHA2').then(r => console.log(r));
 
-const update = () => chrome.storage.local.get({
-  url: '',
-  accurate: false,
-  metric: true
-}, async prefs => {
+const update = async reason => {
+  if (Date.now() - update.now < 1000) {
+    log('update rejected for', reason);
+    return;
+  }
+
+  update.now = Date.now();
+  const prefs = await new Promise(resolve => chrome.storage.local.get({
+    url: '',
+    accurate: false,
+    metric: true
+  }, resolve));
+
   if (prefs.url && prefs.url !== 'https://www.wunderground.com/') {
-    log('update', prefs.url);
+    log('update', prefs.url, 'reason', reason);
     try {
       const o = await extract(prefs.url);
       if (prefs.metric && o.unit === 'F') {
@@ -338,9 +345,14 @@ Last Check: ${new Date().toLocaleString(navigator.language, {hour12: false})}`
   // try to extract location
   else {
     log('Try to guess location');
-    guess().then(href => href && validate(href));
+    update.now = 0;
+    const href = await guess();
+    if (href) {
+      await validate(href);
+    }
   }
-});
+};
+update.now = 0;
 
 // check
 const schedule = (forced = false, delay = 0, reason = '') => {
@@ -359,7 +371,7 @@ const schedule = (forced = false, delay = 0, reason = '') => {
   }));
 };
 chrome.runtime.onInstalled.addListener(() => schedule(true, 0, 'installed'));
-chrome.runtime.onStartup.addListener(() => schedule(true, 10, 'startup'));
+chrome.runtime.onStartup.addListener(() => schedule(true, 0, 'startup'));
 chrome.storage.onChanged.addListener(ps => {
   if (ps.url || ps.timeout || ps.metric || ps.accurate) {
     schedule(true, 0, 'prefs');
@@ -375,6 +387,7 @@ chrome.storage.onChanged.addListener(ps => {
     });
   }
 });
+chrome.idle.setDetectionInterval(5 * 60 * 1000);
 chrome.idle.onStateChanged.addListener(s => {
   if (s === 'active') {
     schedule(false, 20, 'idle');
@@ -382,7 +395,15 @@ chrome.idle.onStateChanged.addListener(s => {
 });
 // chrome.windows.onCreated.addListener(() => schedule(false, 0, 'window'));
 
-chrome.alarms.onAlarm.addListener(o => o.name === 'timer' && update());
+/* startup; we do check for updates on each activate event */
+{
+  self.addEventListener('activate', e => e.waitUntil(update('activate')));
+  chrome.alarms.onAlarm.addListener(o => {
+    if (o.name === 'timer') {
+      update('timer');
+    }
+  });
+}
 
 /* context menus */
 chrome.storage.local.get({
@@ -394,19 +415,19 @@ chrome.storage.local.get({
     contexts: ['action'],
     type: 'radio',
     checked: prefs.metric
-  });
+  }, () => chrome.runtime.lastError);
   chrome.contextMenus.create({
     title: 'Imperial Unit (F)',
     id: 'use.imperial',
     contexts: ['action'],
     type: 'radio',
     checked: prefs.metric === false
-  });
+  }, () => chrome.runtime.lastError);
   chrome.contextMenus.create({
     title: 'Refresh Weather',
     id: 'refresh',
     contexts: ['action']
-  });
+  }, () => chrome.runtime.lastError);
 });
 chrome.contextMenus.onClicked.addListener(info => {
   if (info.menuItemId === 'refresh') {
