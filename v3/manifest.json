@@ -1,7 +1,7 @@
 {
   "name": "Weather Forecast",
   "description": "Provides local and long range weather forecast using Weather Underground",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "manifest_version": 3,
   "permissions": [
     "declarativeNetRequest",

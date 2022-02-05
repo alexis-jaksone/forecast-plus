@@ -216,7 +216,8 @@ const validate = async url => {
   if (prefs.url !== url) {
     log('validating', url);
     const o = await extract(url);
-    if (!o || isNaN(o.value)) {
+
+    if (!o || isNaN(o.value) || o.location === 'undefined') {
       throw Error('not a valid station');
     }
     chrome.storage.local.set({
@@ -238,6 +239,7 @@ chrome.runtime.onMessage.addListener(request => {
 // extract('https://www.wunderground.com/dashboard/pws/KPAHAVER15?cm_ven=localwx_pwsdash').then(r => console.log(r));
 // PWS that points to itself (icon resolving uses guess)
 // extract('https://www.wunderground.com/dashboard/pws/ISOUTHHA2').then(r => console.log(r));
+// extract('https://www.wunderground.com/weather/us/oh/mason/null#isIframeBuster=1&id=3860').then(r => console.log(r));
 
 const update = async reason => {
   if (Date.now() - update.now < 1000) {
