@@ -1,6 +1,6 @@
 @font-face {
   font-family: 'fontello';
-  src: url('fontello.woff?64684469') format('woff');
+  src: url('fontello.woff2?52170867') format('woff2');
   font-weight: normal;
   font-style: normal;
 }
@@ -50,7 +50,8 @@
   /* text-shadow: 1px 1px 1px rgba(127, 127, 127, 0.3); */
 }
 
-.icon-weather:before { content: '\e800'; } /* '' */
-.icon-settings:before { content: '\e801'; } /* '' */
-.icon-faqs:before { content: '\e802'; } /* '' */
+.icon-faqs:before { content: '\e800'; } /* '' */
+.icon-rating:before { content: '\e801'; } /* '' */
+.icon-settings:before { content: '\e802'; } /* '' */
+.icon-weather:before { content: '\e803'; } /* '' */
 .icon-github:before { content: '\f300'; } /* '' */

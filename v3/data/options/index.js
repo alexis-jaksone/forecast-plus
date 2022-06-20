@@ -1,7 +1,7 @@
 /*
     Weather Underground (Forecast Plus) - local and long range weather forecast.
 
-    Copyright (C) 2014-2021 Alexis Jaksone
+    Copyright (C) 2014-2022 Alexis Jaksone
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the Mozilla Public License as published by
@@ -85,3 +85,28 @@ document.getElementById('reset').addEventListener('click', e => {
 document.getElementById('support').addEventListener('click', () => chrome.tabs.create({
   url: chrome.runtime.getManifest().homepage_url + '?rd=donate'
 }));
+// rate
+document.getElementById('rate').addEventListener('click', () => {
+  let url = 'https://chrome.google.com/webstore/detail/weather-forecast-plus/ofobaelkgcpicbdoabokjlnmdcbjellg/reviews';
+  if (/Edg/.test(navigator.userAgent)) {
+    url = 'https://microsoftedge.microsoft.com/addons/detail/phklfmbdnakdekionmpfdiihnmijfpnl';
+  }
+  else if (/Firefox/.test(navigator.userAgent)) {
+    url = 'https://addons.mozilla.org/firefox/addon/weather-forecast-revived/reviews/';
+  }
+  else if (/OPR/.test(navigator.userAgent)) {
+    url = 'https://addons.opera.com/extensions/details/weather-forecast-plus/';
+  }
+
+  chrome.storage.local.set({
+    'rate': false
+  }, () => chrome.tabs.create({
+    url
+  }));
+});
+// links
+for (const a of [...document.querySelectorAll('[data-href]')]) {
+  if (a.hasAttribute('href') === false) {
+    a.href = chrome.runtime.getManifest().homepage_url + '#' + a.dataset.href;
+  }
+}

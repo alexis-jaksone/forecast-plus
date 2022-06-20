@@ -3,10 +3,13 @@
   "priority": 1,
   "action": {
     "type": "modifyHeaders",
-    "responseHeaders": [
-      {"header": "x-frame-options", "operation": "remove"},
-      {"header": "frame-options", "operation": "remove"}
-    ]
+    "responseHeaders": [{
+        "header": "x-frame-options",
+        "operation": "remove"
+      }, {
+        "header": "frame-options",
+        "operation": "remove"
+      }]
   },
   "condition": {
     "urlFilter": "||wunderground.com",
@@ -17,9 +20,11 @@
   "priority": 1,
   "action": {
     "type": "modifyHeaders",
-    "requestHeaders": [
-      {"header": "referer", "operation": "set", "value": "https://www.wunderground.com/"}
-    ]
+    "requestHeaders": [{
+      "header": "referer",
+      "operation": "set",
+      "value": "https://www.wunderground.com/"
+    }]
   },
   "condition": {
     "urlFilter": "https://api.weather.com/v3/location/near",

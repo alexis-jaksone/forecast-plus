@@ -1,7 +1,7 @@
 /**
     Weather Underground (Forecast Plus) - local and long range weather forecast.
 
-    Copyright (C) 2014-2021 Alexis Jaksone
+    Copyright (C) 2014-2022 Alexis Jaksone
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the Mozilla Public License as published by
@@ -16,83 +16,23 @@
 
     GitHub: https://github.com/alexis-jaksone/forecast-plus/
 */
-/* global importScripts, sax */
 
-importScripts('sax.js');
+/* global query log */
 
-const log = (...args) => console.log(new Date().toISOString(), ...args);
+self.importScripts('extra.js');
+self.importScripts('context.js');
 
-const query = (code, query, stop = true) => {
-  return new Promise((resolve, reject) => {
-    const results = [];
-    let tree;
-
-    class Node {
-      constructor(name, attributes) {
-        this.name = name;
-        this.attributes = attributes || {};
-        this.children = [];
-      }
-      closest(name) {
-        let p = this.parent;
-        while (p && p.name !== name) {
-          p = p.parent;
-        }
-        return p;
-      }
-      child(query, reverse = false) {
-        const once = node => {
-          if (node.children) {
-            for (const n of (reverse ? [...node.children].reverse() : node.children)) {
-              if ((query.name ? query.name === n.name : true) && (query.match ? query.match(n) : true)) {
-                return n;
-              }
-              const r = once(n);
-              if (r) {
-                return r;
-              }
-            }
-          }
-        };
-        return once(this);
-      }
-    }
-    const parser = sax.parser(false, {});
-    parser.onopentag = function(node) {
-      const child = new Node(node.name, node.attributes);
-      if (!tree) {
-        tree = child;
-      }
-      else {
-        tree.children.push(child);
-        child.parent = tree;
-        tree = child;
-      }
-    };
-    parser.onclosetag = function(name) {
-      if ((query.name ? query.name === tree.name : true) && (query.match ? query.match(tree) : true)) {
-        results.push(tree);
-        if (stop) {
-          resolve(tree);
-          throw Error('done');
-        }
-      }
-      if (name === tree.name) {
-        if (tree.parent) {
-          tree = tree.parent;
-        }
-      }
-    };
-    parser.ontext = text => tree.text = text;
-    parser.onend = () => resolve(stop ? undefined : results);
-    parser.onerror = e => reject(e);
-    parser.write(code).end();
-  });
+const config = {
+  'skip-update': 1000, // ms
+  'extract-timeout': 120000, // ms
+  'idle-timeout': 5 * 60 * 1000, // ms
+  'idle-delay': 20, // ms
+  'update-error': 2 * 60 // seconds
 };
 
 const extract = async href => {
   const controller = new AbortController();
-  setTimeout(() => controller.abort(), 120000);
+  setTimeout(() => controller.abort(), config['extract-timeout']);
   const r = await fetch(href, {
     signal: controller.signal
   });
@@ -242,7 +182,7 @@ chrome.runtime.onMessage.addListener(request => {
 // extract('https://www.wunderground.com/weather/us/oh/mason/null#isIframeBuster=1&id=3860').then(r => console.log(r));
 
 const update = async reason => {
-  if (Date.now() - update.now < 1000) {
+  if (Date.now() - update.now < config['skip-update']) {
     log('update rejected for', reason);
     return;
   }
@@ -330,7 +270,7 @@ Last Updated: ${new Date().toLocaleString(navigator.language, {hour12: false})}`
           text: 'E'
         });
         // let's try in 2 minutes
-        schedule(false, 2 * 60, 'error');
+        schedule(false, config['update-error'], 'error');
       }
       chrome.action.setTitle({
         title: `To get badge notification, open popup -> Find location -> Press 'View Full Forecast'
@@ -389,10 +329,10 @@ chrome.storage.onChanged.addListener(ps => {
     });
   }
 });
-chrome.idle.setDetectionInterval(5 * 60 * 1000);
+chrome.idle.setDetectionInterval(config['idle-timeout']);
 chrome.idle.onStateChanged.addListener(s => {
   if (s === 'active') {
-    schedule(false, 20, 'idle');
+    schedule(false, config['idle-delay'], 'idle');
   }
 });
 // chrome.windows.onCreated.addListener(() => schedule(false, 0, 'window'));
@@ -406,55 +346,6 @@ chrome.idle.onStateChanged.addListener(s => {
     }
   });
 }
-
-/* context menus */
-chrome.storage.local.get({
-  metric: true
-}, prefs => {
-  chrome.contextMenus.create({
-    title: 'Metric Unit (C)',
-    id: 'use.metric',
-    contexts: ['action'],
-    type: 'radio',
-    checked: prefs.metric
-  }, () => chrome.runtime.lastError);
-  chrome.contextMenus.create({
-    title: 'Imperial Unit (F)',
-    id: 'use.imperial',
-    contexts: ['action'],
-    type: 'radio',
-    checked: prefs.metric === false
-  }, () => chrome.runtime.lastError);
-  chrome.contextMenus.create({
-    title: 'Refresh Weather',
-    id: 'refresh',
-    contexts: ['action']
-  }, () => chrome.runtime.lastError);
-});
-chrome.contextMenus.onClicked.addListener(info => {
-  if (info.menuItemId === 'refresh') {
-    schedule(true, 0, 'user');
-  }
-  else {
-    chrome.storage.local.set({
-      metric: info.menuItemId === 'use.metric'
-    });
-  }
-});
-
-/* badge color */
-{
-  const callback = () => {
-    chrome.storage.local.get({
-      color: '#485a81'
-    }, prefs => chrome.action.setBadgeBackgroundColor({
-      color: prefs.color
-    }));
-  };
-  chrome.runtime.onInstalled.addListener(callback);
-  chrome.runtime.onStartup.addListener(callback);
-}
-
 
 /* FAQs & Feedback */
 {

@@ -39,3 +39,7 @@ iframe {
 iframe:not([data-loaded=true]) {
   background-image: url('loading.gif');
 }
+
+button[data-hide=true] {
+  display: none;
+}

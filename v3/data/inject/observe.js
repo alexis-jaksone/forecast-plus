@@ -1,7 +1,7 @@
 /*
     Weather Underground (Forecast Plus) - local and long range weather forecast.
 
-    Copyright (C) 2014-2021 Alexis Jaksone
+    Copyright (C) 2014-2022 Alexis Jaksone
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the Mozilla Public License as published by

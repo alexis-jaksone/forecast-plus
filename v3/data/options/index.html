@@ -8,11 +8,10 @@
 
 <body>
   <div class="two">
-    <span class="nowrap">Popup size (in pixels)</span>
+    <span class="nowrap"><a target="_blank" data-href="faq8">Popup size</a> (in pixels)</span>
     <div class="eql">
       <input id="width" type="number" min="300">×<input id="height" type="number" min="300">
     </div>
-    <p class="note">Acceptable range is form 300px to 800px</p>
     <span class="nowrap">Check weather condition every (in minutes)</span>
     <input id="timeout" type="number" min="3" class="end">
     <p class="note">Minimum acceptable value is 3 minutes</p>
@@ -23,20 +22,21 @@
     <input id="metric" type="checkbox">
     <label for="metric">Use metric unit for badge temperature</label>
     <input id="accurate" type="checkbox">
-    <label for="accurate">Use decimal point in the badge area</label>
-    <p class="note">By default, the current temperature is round to the nearest number. Check this option if you prefer the extension to display decimal point as well. Wait for the next update for this change to take place</p>
+    <label for="accurate">Use <a target="_blank" data-href="faq9">decimal point</a> in the badge area</label>
     <input id="faqs" type="checkbox">
     <label for="faqs">Open FAQs page after each successful upgrade</label>
   </div>
 
-  <div id="explore"></div>
   <p>
     <button id="support">Support Development</button>
-    <button id="reset">Factory Reset</button> - <button id="save">Save Options</button>
+    <button id="rate">Rate Me</button>
+  </p>
+  <p>
+    <button id="reset">Factory Reset</button>
+    <button id="save">Save Options</button>
     <span id="status"></span>
   </p>
 
   <script src="index.js"></script>
-  <script async type="text/javascript" src="matched.js"></script>
 </body>
 </html>
