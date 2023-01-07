@@ -201,7 +201,6 @@ const update = async reason => {
       if (prefs.metric && o.unit === 'F') {
         o.value = (o.value - 32) * 5 / 9;
         o.feels = (o.feels - 32) * 5 / 9;
-
         o.unit = 'C';
       }
       if (!prefs.metric && o.unit === 'C') {
@@ -238,7 +237,7 @@ Last Updated: ${new Date().toLocaleString(navigator.language, {hour12: false})}`
       });
       // icon
       try {
-        const path = 'data/icons/assets/png/' + (o.icon || '').split('/').pop().replace('.svg', '.png');
+        const path = '/data/icons/assets/png/' + (o.icon || '').split('/').pop().replace('.svg', '.png');
         await fetch(path).then(r => r.blob()).then(async b => {
           const img = await createImageBitmap(b);
           const offscreen = new OffscreenCanvas(img.width, img.height);
@@ -338,14 +337,12 @@ chrome.idle.onStateChanged.addListener(s => {
 // chrome.windows.onCreated.addListener(() => schedule(false, 0, 'window'));
 
 /* startup; we do check for updates on each activate event */
-{
-  self.addEventListener('activate', e => e.waitUntil(update('activate')));
-  chrome.alarms.onAlarm.addListener(o => {
-    if (o.name === 'timer') {
-      update('timer');
-    }
-  });
-}
+self.addEventListener('activate', e => e.waitUntil(update('activate')));
+chrome.alarms.onAlarm.addListener(o => {
+  if (o.name === 'timer') {
+    update('timer');
+  }
+});
 
 /* FAQs & Feedback */
 {

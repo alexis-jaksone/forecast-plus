@@ -2,7 +2,7 @@
   "name": "Weather Forecast",
   "description": "__MSG_description__",
   "default_locale": "en",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "manifest_version": 3,
   "permissions": [
     "declarativeNetRequest",
@@ -23,7 +23,7 @@
     }]
   },
   "action": {
-    "default_popup": "data/popup/index.html",
+    "default_popup": "/data/popup/index.html",
     "default_title": "To get badge notification, open popup -> Find location -> Press 'View Full Forecast'"
   },
   "background": {
@@ -38,7 +38,7 @@
     "run_at": "document_start",
     "all_frames": true
   }],
-  "homepage_url": "https://add0n.com/forecast-plus.html",
+  "homepage_url": "https://webextension.org/listing/forecast-plus.html",
   "icons": {
     "16": "data/icons/16.png",
     "24": "data/icons/24.png",
@@ -49,8 +49,7 @@
     "256": "data/icons/256.png"
   },
   "options_ui": {
-    "page": "data/options/index.html",
+    "page": "/data/options/index.html",
     "open_in_tab": true
-  },
-  "minimum_chrome_version": "92"
+  }
 }
