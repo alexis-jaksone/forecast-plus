@@ -7,30 +7,15 @@
   <link rel="stylesheet" href="font/fontello.css">
 </head>
 <body>
-  <table>
-    <colgroup>
-      <col width=32>
-      <col>
-    </colgroup>
-    <tbody>
-      <tr>
-        <td align="center" valign="top">
-            <button class="icon-weather" title="Open wunderground.com in a browser tab" data-url="fetch-url"></button>
-            <button class="icon-faqs" title="Open FAQs page in a browser tab" data-url="faqs"></button>
-            <button class="icon-github" title="Open GitHub bug reporter in a browser tab" data-url="https://github.com/alexis-jaksone/forecast-plus/"></button>
-        </td>
-        <td rowspan="2" style="height: 100%; padding: 0;">
-          <iframe sandbox="allow-scripts allow-same-origin allow-forms" frameBorder="0"></iframe>
-        </td>
-      </tr>
-      <tr>
-        <td align="center" valign="bottom">
-          <button id="rate" class="icon-rating" title="Rate Me" data-cmd="rate" data-hide=true></button>
-          <button class="icon-settings" title="Open options UI" data-cmd="settings"></button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <div id="tools">
+    <button class="icon-weather" title="Open wunderground.com in a browser tab" data-url="fetch-url"></button>
+    <button class="icon-faqs" title="Open FAQs page in a browser tab" data-url="faqs"></button>
+    <button class="icon-github" title="Open GitHub bug reporter in a browser tab" data-url="https://github.com/alexis-jaksone/forecast-plus/"></button>
+    <span class="spacer"></span>
+    <button id="rate" class="icon-rating" title="Rate Me" data-cmd="rate" data-hide=true></button>
+    <button class="icon-settings" title="Open options UI" data-cmd="settings"></button>
+  </div>
+  <iframe sandbox="allow-scripts allow-same-origin allow-forms" frameBorder="0"></iframe>
   <script src="index.js"></script>
   <script src="rate.js"></script>
 </body>
