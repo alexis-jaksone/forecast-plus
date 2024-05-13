@@ -50,10 +50,20 @@ chrome.storage.local.get({
       contexts: ['action']
     }, () => chrome.runtime.lastError);
   }
+  if (/Firefox/.test(navigator.userAgent)) {
+    chrome.contextMenus.create({
+      title: 'Options Page',
+      id: 'options',
+      contexts: ['action']
+    }, () => chrome.runtime.lastError);
+  }
 });
 chrome.contextMenus.onClicked.addListener(info => {
   if (info.menuItemId === 'refresh') {
     schedule(true, 0, 'user');
+  }
+  else if (info.menuItemId === 'options') {
+    chrome.runtime.openOptionsPage();
   }
   else if (info.menuItemId === 'rate') {
     let url = 'https://chrome.google.com/webstore/detail/weather-forecast-plus/ofobaelkgcpicbdoabokjlnmdcbjellg/reviews';

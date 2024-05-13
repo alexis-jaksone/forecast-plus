@@ -2,7 +2,7 @@
   "name": "Weather Forecast",
   "description": "__MSG_description__",
   "default_locale": "en",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "manifest_version": 3,
   "permissions": [
     "declarativeNetRequest",

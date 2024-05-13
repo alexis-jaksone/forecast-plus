@@ -14,7 +14,7 @@
     You should have received a copy of the Mozilla Public License
     along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
 
-    Home: http://add0n.com/forecast-plus.html
+    Home: https://webextension.org/listing/forecast-plus.html
     GitHub: https://github.com/alexis-jaksone/forecast-plus/
 */
 
