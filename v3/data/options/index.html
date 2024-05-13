@@ -8,15 +8,19 @@
 
 <body>
   <div class="two">
-    <span class="nowrap"><a target="_blank" data-href="faq8">Popup size</a> (in pixels)</span>
+    <label for="width" class="nowrap"><a target="_blank" data-href="faq8">Popup size</a> (in pixels)</label>
     <div class="eql">
       <input id="width" type="number" min="300">×<input id="height" type="number" min="300">
     </div>
-    <span class="nowrap">Check weather condition every (in minutes)</span>
+    <label class="nowrap" for="timeout">Check weather condition every (in minutes)</label>
     <input id="timeout" type="number" min="3" class="end">
     <p class="note">Minimum acceptable value is 3 minutes</p>
-    <span class="nowrap">Badge background color code is</span>
+    <label class="nowrap" for="color">Badge background color code is</label>
     <input id="color" type="color" class="end">
+    <label class="nowrap" for="user-station">Custom station</label>
+    <input type="text" id="user-station" placeholder="https://www.wunderground.com/...">
+    <p class="note">If you want the extension to automatically use the last visited station, clear the box</p>
+    <p class="note">Currently used station is <code id="active-station">-</code></p>
   </div>
   <div class="two" style="margin-top: 20px;">
     <input id="metric" type="checkbox">

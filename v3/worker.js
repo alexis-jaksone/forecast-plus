@@ -167,9 +167,14 @@ const validate = async url => {
   }
 };
 
-chrome.runtime.onMessage.addListener(request => {
+chrome.runtime.onMessage.addListener((request, sender, response) => {
   if (request.method === 'validate') {
     validate(request.href);
+  }
+  else if (request.method === 'responsive-validate') {
+    validate(request.href).then(() => response(true)).catch(e => response(e.message));
+
+    return true;
   }
 });
 
@@ -189,15 +194,18 @@ const update = async reason => {
 
   update.now = Date.now();
   const prefs = await new Promise(resolve => chrome.storage.local.get({
-    url: '',
-    accurate: false,
-    metric: true
+    'url': '',
+    'user-station': false,
+    'accurate': false,
+    'metric': true
   }, resolve));
+  const href = prefs['user-station'] || prefs.url;
 
-  if (prefs.url && prefs.url !== 'https://www.wunderground.com/') {
-    log('update', prefs.url, 'reason', reason);
+
+  if (href && href !== 'https://www.wunderground.com/') {
+    log('update', href, 'reason', reason);
     try {
-      const o = await extract(prefs.url);
+      const o = await extract(href);
       if (prefs.metric && o.unit === 'F') {
         o.value = (o.value - 32) * 5 / 9;
         o.feels = (o.feels - 32) * 5 / 9;
@@ -315,6 +323,9 @@ chrome.runtime.onInstalled.addListener(() => schedule(true, 0, 'installed'));
 chrome.runtime.onStartup.addListener(() => schedule(true, 0, 'startup'));
 chrome.storage.onChanged.addListener(ps => {
   if (ps.url || ps.timeout || ps.metric || ps.accurate) {
+    schedule(true, 0, 'prefs');
+  }
+  if (ps['user-station'] && ps['user-station'].newValue === false) {
     schedule(true, 0, 'prefs');
   }
   if (ps.metric) {

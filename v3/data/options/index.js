@@ -20,9 +20,28 @@
 
 'use strict';
 
-var log = document.getElementById('status');
+const log = document.getElementById('status');
+
+function toast(message, timeout = 750) {
+  return new Promise(resolve => {
+    log.textContent = message;
+    clearTimeout(toast.id);
+    toast.id = setTimeout(() => log.textContent = '', timeout);
+    // resolve anyway
+    setTimeout(resolve, timeout);
+  });
+}
 
 function restore() {
+  chrome.storage.local.get({
+    'url': '',
+    'user-station': false
+  }, prefs => {
+    console.log(prefs);
+    document.getElementById('active-station').textContent = prefs.url || '-';
+    document.getElementById('user-station').value = prefs['user-station'] || '';
+  });
+
   chrome.storage.local.get({
     width: 800,
     height: 520,
@@ -40,20 +59,63 @@ function restore() {
 
 function save() {
   const prefs = {
-    width: Math.min(800, Math.max(document.getElementById('width').value, 300)),
-    height: Math.min(800, Math.max(document.getElementById('height').value, 300)),
-    timeout: Math.max(document.getElementById('timeout').value, 3),
-    color: document.getElementById('color').value,
-    accurate: document.getElementById('accurate').checked,
-    faqs: document.getElementById('faqs').checked,
-    metric: document.getElementById('metric').checked
+    'width': Math.min(800, Math.max(document.getElementById('width').value, 300)),
+    'height': Math.min(800, Math.max(document.getElementById('height').value, 300)),
+    'timeout': Math.max(document.getElementById('timeout').value, 3),
+    'color': document.getElementById('color').value,
+    'accurate': document.getElementById('accurate').checked,
+    'faqs': document.getElementById('faqs').checked,
+    'metric': document.getElementById('metric').checked,
+    'user-station': document.getElementById('user-station').value || false
   };
 
-  chrome.storage.local.set(prefs, () => {
-    log.textContent = 'Options saved.';
-    setTimeout(() => log.textContent = '', 750);
+  const next = () => chrome.storage.local.set(prefs, () => {
+    toast('Options saved');
     restore();
   });
+
+
+  const href = document.getElementById('user-station').value;
+  if (href) {
+    toast('Validating the provided station...', 100000);
+
+    if (href.startsWith('https://www.wunderground.com/') === false) {
+      prefs['user-station'] = false;
+      toast('Station address start with "https://www.wunderground.com/"', 2000).then(next);
+      document.getElementById('user-station').value = '';
+
+      return;
+    }
+    try {
+      new URL(href);
+    }
+    catch (e) {
+      prefs['user-station'] = false;
+      toast('Invalid address', 2000).then(next);
+      document.getElementById('user-station').value = '';
+
+      return;
+    }
+
+    chrome.runtime.sendMessage({
+      method: 'responsive-validate',
+      href
+    }, r => {
+      if (r === true) {
+        prefs['user-station'] = href;
+        next();
+      }
+      else {
+        prefs['user-station'] = false;
+        toast('Station is not responding: ' + r, 2000).then(next);
+        document.getElementById('user-station').value = '';
+      }
+    });
+  }
+  else {
+    prefs['user-station'] = false;
+    next();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', restore);

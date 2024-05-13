@@ -10,7 +10,7 @@ select,
 button,
 input[type=submit],
 input[type=button] {
-  height: 24px;
+  height: 28px;
   color: #444;
   background-image: linear-gradient(rgb(237, 237, 237), rgb(237, 237, 237) 38%, rgb(222, 222, 222));
   box-shadow: rgba(0, 0, 0, 0.08) 0 1px 0, rgba(255, 255, 255, 0.75) 0 1px 2px inset;
@@ -49,6 +49,10 @@ a:visited {
   color: #07c;
   text-decoration: none;
 }
+code {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 2px 5px;
+}
 
 .two {
   display: grid;
@@ -76,9 +80,9 @@ a:visited {
 }
 .note {
   grid-column: 1/3;
-  padding: 5px;
+  padding: 10px;
   margin: 0;
-  color: #676767;
-  background-color: #eaeaea;
+  color: #5e1d19;
+  background-color: #fff1ed;
 }
 
