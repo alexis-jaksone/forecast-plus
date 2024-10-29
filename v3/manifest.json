@@ -2,10 +2,10 @@
   "name": "Weather Forecast",
   "description": "__MSG_description__",
   "default_locale": "en",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "manifest_version": 3,
   "permissions": [
-    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
     "storage",
     "alarms",
     "idle",
@@ -27,29 +27,36 @@
     "default_title": "To get badge notification, open popup -> Find location -> Press 'View Full Forecast'"
   },
   "background": {
-    "service_worker": "worker.js"
+    "service_worker": "worker.js",
+    "scripts": ["sax.js", "extra.js", "context.js", "worker.js"]
   },
   "content_scripts": [{
     "matches": ["*://www.wunderground.com/*"],
     "js": [
-      "data/inject/clean.js",
-      "data/inject/observe.js"
+      "/data/inject/clean.js",
+      "/data/inject/observe.js"
     ],
     "run_at": "document_start",
     "all_frames": true
   }],
   "homepage_url": "https://webextension.org/listing/forecast-plus.html",
   "icons": {
-    "16": "data/icons/16.png",
-    "24": "data/icons/24.png",
-    "32": "data/icons/32.png",
-    "48": "data/icons/48.png",
-    "64": "data/icons/64.png",
-    "128": "data/icons/128.png",
-    "256": "data/icons/256.png"
+    "16": "/data/icons/16.png",
+    "24": "/data/icons/24.png",
+    "32": "/data/icons/32.png",
+    "48": "/data/icons/48.png",
+    "64": "/data/icons/64.png",
+    "128": "/data/icons/128.png",
+    "256": "/data/icons/256.png"
   },
   "options_ui": {
     "page": "/data/options/index.html",
     "open_in_tab": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{98ab7bc7-0e75-430c-92cb-d27a0e48b23d}",
+      "strict_min_version": "128.0"
+    }
   }
 }

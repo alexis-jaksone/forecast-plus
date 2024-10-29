@@ -19,8 +19,10 @@
 
 /* global query log */
 
-self.importScripts('extra.js');
-self.importScripts('context.js');
+if (typeof importScripts !== 'undefined') {
+  self.importScripts('extra.js');
+  self.importScripts('context.js');
+}
 
 const config = {
   'skip-update': 1000, // ms
@@ -36,6 +38,9 @@ const extract = async href => {
   const r = await fetch(href, {
     signal: controller.signal
   });
+  if (!r.ok) {
+    throw Error('NOT_OK');
+  }
   const content = await r.text();
 
   const type = href.indexOf('/pws/') === -1 ? 'nrm' : 'pws';
@@ -139,6 +144,7 @@ const guess = () => fetch('https://www.wunderground.com/').then(r => r.text()).t
   const hrefs = content.split('https://api.weather.com/').slice(1).map(s => {
     return 'https://api.weather.com/' + s.split('&q;')[0].replaceAll('&a;', '&');
   });
+
   const near = hrefs.filter(s => s.indexOf('location/near') !== -1).shift();
   if (near) {
     return fetch(near).then(r => r.json()).then(j => {
@@ -359,8 +365,7 @@ chrome.alarms.onAlarm.addListener(o => {
 {
   const {management, runtime: {onInstalled, setUninstallURL, getManifest}, storage, tabs} = chrome;
   if (navigator.webdriver !== true) {
-    const page = getManifest().homepage_url;
-    const {name, version} = getManifest();
+    const {homepage_url: page, name, version} = getManifest();
     onInstalled.addListener(({reason, previousVersion}) => {
       management.getSelf(({installType}) => installType === 'normal' && storage.local.get({
         'faqs': true,
@@ -369,7 +374,7 @@ chrome.alarms.onAlarm.addListener(o => {
         if (reason === 'install' || (prefs.faqs && reason === 'update')) {
           const doUpdate = (Date.now() - prefs['last-update']) / 1000 / 60 / 60 / 24 > 45;
           if (doUpdate && previousVersion !== version) {
-            tabs.query({active: true, currentWindow: true}, tbs => tabs.create({
+            tabs.query({active: true, lastFocusedWindow: true}, tbs => tabs.create({
               url: page + '?version=' + version + (previousVersion ? '&p=' + previousVersion : '') + '&type=' + reason,
               active: reason === 'install',
               ...(tbs && tbs.length && {index: tbs[0].index + 1})

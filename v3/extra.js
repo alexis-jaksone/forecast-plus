@@ -19,7 +19,9 @@
 
 /* global sax */
 
-self.importScripts('sax.js');
+if (typeof importScripts !== 'undefined') {
+  self.importScripts('sax.js');
+}
 
 self.log = (...args) => console.log(new Date().toISOString(), ...args);
 

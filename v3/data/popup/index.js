@@ -42,14 +42,15 @@ document.addEventListener('click', e => {
         url: 'https://www.wunderground.com/'
       }, prefs => chrome.tabs.create({
         url: prefs.url
-      }));
+      }, () => window.close()));
     }
     chrome.tabs.create({
       url: url === 'faqs' ? chrome.runtime.getManifest().homepage_url : url
-    });
+    }, () => window.close());
   }
   else if (cmd === 'settings') {
     chrome.runtime.openOptionsPage();
+    window.close();
   }
 });
 

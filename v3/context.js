@@ -18,46 +18,57 @@
 */
 
 /* global schedule */
+{
+  const once = () => {
+    if (once.done) {
+      return;
+    }
+    once.done = true;
 
-chrome.storage.local.get({
-  metric: true,
-  rate: true
-}, prefs => {
-  chrome.contextMenus.create({
-    title: 'Metric Unit (C)',
-    id: 'use.metric',
-    contexts: ['action'],
-    type: 'radio',
-    checked: prefs.metric
-  }, () => chrome.runtime.lastError);
-  chrome.contextMenus.create({
-    title: 'Imperial Unit (F)',
-    id: 'use.imperial',
-    contexts: ['action'],
-    type: 'radio',
-    checked: prefs.metric === false
-  }, () => chrome.runtime.lastError);
-  chrome.contextMenus.create({
-    title: 'Refresh Weather',
-    id: 'refresh',
-    contexts: ['action']
-  }, () => chrome.runtime.lastError);
+    chrome.storage.local.get({
+      metric: true,
+      rate: true
+    }, prefs => {
+      chrome.contextMenus.create({
+        title: 'Metric Unit (C)',
+        id: 'use.metric',
+        contexts: ['action'],
+        type: 'radio',
+        checked: prefs.metric
+      }, () => chrome.runtime.lastError);
+      chrome.contextMenus.create({
+        title: 'Imperial Unit (F)',
+        id: 'use.imperial',
+        contexts: ['action'],
+        type: 'radio',
+        checked: prefs.metric === false
+      }, () => chrome.runtime.lastError);
+      chrome.contextMenus.create({
+        title: 'Refresh Weather',
+        id: 'refresh',
+        contexts: ['action']
+      }, () => chrome.runtime.lastError);
 
-  if (prefs.rate) {
-    chrome.contextMenus.create({
-      title: 'Rate Me',
-      id: 'rate',
-      contexts: ['action']
-    }, () => chrome.runtime.lastError);
-  }
-  if (/Firefox/.test(navigator.userAgent)) {
-    chrome.contextMenus.create({
-      title: 'Options Page',
-      id: 'options',
-      contexts: ['action']
-    }, () => chrome.runtime.lastError);
-  }
-});
+      if (prefs.rate) {
+        chrome.contextMenus.create({
+          title: 'Rate Me',
+          id: 'rate',
+          contexts: ['action']
+        }, () => chrome.runtime.lastError);
+      }
+      if (/Firefox/.test(navigator.userAgent)) {
+        chrome.contextMenus.create({
+          title: 'Options Page',
+          id: 'options',
+          contexts: ['action']
+        }, () => chrome.runtime.lastError);
+      }
+    });
+  };
+  chrome.runtime.onStartup.addListener(once);
+  chrome.runtime.onInstalled.addListener(once);
+}
+
 chrome.contextMenus.onClicked.addListener(info => {
   if (info.menuItemId === 'refresh') {
     schedule(true, 0, 'user');
@@ -66,7 +77,7 @@ chrome.contextMenus.onClicked.addListener(info => {
     chrome.runtime.openOptionsPage();
   }
   else if (info.menuItemId === 'rate') {
-    let url = 'https://chrome.google.com/webstore/detail/weather-forecast-plus/ofobaelkgcpicbdoabokjlnmdcbjellg/reviews';
+    let url = 'https://chromewebstore.google.com/detail/ofobaelkgcpicbdoabokjlnmdcbjellg/reviews';
     if (/Edg/.test(navigator.userAgent)) {
       url = 'https://microsoftedge.microsoft.com/addons/detail/phklfmbdnakdekionmpfdiihnmijfpnl';
     }
