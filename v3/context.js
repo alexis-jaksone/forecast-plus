@@ -19,51 +19,79 @@
 
 /* global schedule */
 {
-  const once = () => {
+  const once = async () => {
     if (once.done) {
       return;
     }
     once.done = true;
 
-    chrome.storage.local.get({
+    const prefs = await chrome.storage.local.get({
       metric: true,
-      rate: true
-    }, prefs => {
+      rate: true,
+      popup: false
+    });
+    chrome.contextMenus.create({
+      title: 'Unit',
+      id: 'unit',
+      contexts: ['action'],
+      checked: prefs.metric
+    }, () => chrome.runtime.lastError);
+    chrome.contextMenus.create({
+      title: 'Metric (C)',
+      id: 'use.metric',
+      contexts: ['action'],
+      type: 'radio',
+      parentId: 'unit',
+      checked: prefs.metric
+    }, () => chrome.runtime.lastError);
+    chrome.contextMenus.create({
+      title: 'Imperial (F)',
+      id: 'use.imperial',
+      contexts: ['action'],
+      type: 'radio',
+      parentId: 'unit',
+      checked: prefs.metric === false
+    }, () => chrome.runtime.lastError);
+    chrome.contextMenus.create({
+      title: 'Interface',
+      id: 'interface',
+      contexts: ['action']
+    }, () => chrome.runtime.lastError);
+    chrome.contextMenus.create({
+      title: 'Popup Interface',
+      id: 'interface.popup',
+      parentId: 'interface',
+      contexts: ['action'],
+      type: 'radio',
+      checked: prefs.popup
+    }, () => chrome.runtime.lastError);
+    chrome.contextMenus.create({
+      title: 'Tab Interface',
+      id: 'interface.tab',
+      parentId: 'interface',
+      contexts: ['action'],
+      type: 'radio',
+      checked: prefs.popup === false
+    }, () => chrome.runtime.lastError);
+    chrome.contextMenus.create({
+      title: 'Refresh Weather',
+      id: 'refresh',
+      contexts: ['action']
+    }, () => chrome.runtime.lastError);
+    if (prefs.rate) {
       chrome.contextMenus.create({
-        title: 'Metric Unit (C)',
-        id: 'use.metric',
-        contexts: ['action'],
-        type: 'radio',
-        checked: prefs.metric
-      }, () => chrome.runtime.lastError);
-      chrome.contextMenus.create({
-        title: 'Imperial Unit (F)',
-        id: 'use.imperial',
-        contexts: ['action'],
-        type: 'radio',
-        checked: prefs.metric === false
-      }, () => chrome.runtime.lastError);
-      chrome.contextMenus.create({
-        title: 'Refresh Weather',
-        id: 'refresh',
+        title: 'Rate Me',
+        id: 'rate',
         contexts: ['action']
       }, () => chrome.runtime.lastError);
-
-      if (prefs.rate) {
-        chrome.contextMenus.create({
-          title: 'Rate Me',
-          id: 'rate',
-          contexts: ['action']
-        }, () => chrome.runtime.lastError);
-      }
-      if (/Firefox/.test(navigator.userAgent)) {
-        chrome.contextMenus.create({
-          title: 'Options Page',
-          id: 'options',
-          contexts: ['action']
-        }, () => chrome.runtime.lastError);
-      }
-    });
+    }
+    if (/Firefox/.test(navigator.userAgent)) {
+      chrome.contextMenus.create({
+        title: 'Options Page',
+        id: 'options',
+        contexts: ['action']
+      }, () => chrome.runtime.lastError);
+    }
   };
   chrome.runtime.onStartup.addListener(once);
   chrome.runtime.onInstalled.addListener(once);
@@ -72,6 +100,11 @@
 chrome.contextMenus.onClicked.addListener(info => {
   if (info.menuItemId === 'refresh') {
     schedule(true, 0, 'user');
+  }
+  else if (info.menuItemId === 'interface.popup' || info.menuItemId === 'interface.tab') {
+    chrome.storage.local.set({
+      popup: info.menuItemId === 'interface.popup'
+    });
   }
   else if (info.menuItemId === 'options') {
     chrome.runtime.openOptionsPage();

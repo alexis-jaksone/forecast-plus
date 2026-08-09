@@ -1,0 +1,16 @@
+[{
+  "id": 2,
+  "priority": 1,
+  "action": {
+    "type": "modifyHeaders",
+    "requestHeaders": [{
+      "header": "referer",
+      "operation": "set",
+      "value": "https://www.wunderground.com/"
+    }]
+  },
+  "condition": {
+    "urlFilter": "https://api.weather.com/v3/location/near",
+    "resourceTypes": ["xmlhttprequest"]
+  }
+}]

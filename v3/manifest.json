@@ -9,7 +9,8 @@
     "storage",
     "alarms",
     "idle",
-    "contextMenus"
+    "contextMenus",
+    "windows"
   ],
   "host_permissions": [
     "*://www.wunderground.com/*",
@@ -17,13 +18,16 @@
   ],
   "declarative_net_request" : {
     "rule_resources" : [{
-      "id": "ruleset",
+      "id": "ruleset-popup",
+      "enabled": false,
+      "path": "rules-popup.json"
+    }, {
+      "id": "ruleset-worker",
       "enabled": true,
-      "path": "rules.json"
+      "path": "rules-worker.json"
     }]
   },
   "action": {
-    "default_popup": "/data/popup/index.html",
     "default_title": "To get badge notification, open popup -> Find location -> Press 'View Full Forecast'"
   },
   "background": {

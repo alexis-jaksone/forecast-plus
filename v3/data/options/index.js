@@ -48,7 +48,8 @@ function restore() {
     color: '#485a81',
     accurate: false,
     faqs: true,
-    metric: true
+    metric: true,
+    popup: false
   }, prefs => {
     Object.keys(prefs).forEach(name => {
       document.getElementById(name)[typeof prefs[name] === 'boolean' ? 'checked' : 'value'] = prefs[name];
@@ -65,14 +66,21 @@ function save() {
     'accurate': document.getElementById('accurate').checked,
     'faqs': document.getElementById('faqs').checked,
     'metric': document.getElementById('metric').checked,
+    'popup': document.getElementById('popup').checked,
     'user-station': document.getElementById('user-station').value || false
   };
+
+  chrome.contextMenus.update('interface.popup', {
+    checked: prefs.popup
+  });
+  chrome.contextMenus.update('interface.tab', {
+    checked: prefs.popup === false
+  });
 
   const next = () => chrome.storage.local.set(prefs, () => {
     toast('Options saved');
     restore();
   });
-
 
   const href = document.getElementById('user-station').value;
   if (href) {

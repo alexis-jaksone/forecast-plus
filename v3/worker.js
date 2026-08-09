@@ -159,6 +159,57 @@ const guess = async () => {
   }
 };
 
+/* popup interface preference */
+const applyPopup = async () => {
+  const prefs = await chrome.storage.local.get({
+    popup: false
+  });
+  await chrome.action.setPopup({
+    popup: prefs.popup ? '/data/popup/index.html' : ''
+  });
+  try {
+    await chrome.declarativeNetRequest.updateEnabledRulesets({
+      enableRulesetIds: prefs.popup ? ['ruleset-popup'] : [],
+      disableRulesetIds: prefs.popup ? [] : ['ruleset-popup']
+    });
+  }
+  catch (e) {
+    console.warn('cannot update ruleset', e);
+  }
+};
+
+/* when popup is disabled, opening the action opens wunderground.com in a tab or switches to an existing one */
+chrome.action.onClicked.addListener(async () => {
+  const prefs = await chrome.storage.local.get({
+    url: 'https://www.wunderground.com/'
+  });
+  const url = prefs.url || 'https://www.wunderground.com/';
+  const hostname = new URL(url).hostname;
+  const tabs = await chrome.tabs.query({});
+  const existing = tabs.find(t => {
+    try {
+      return t.url && new URL(t.url).hostname === hostname;
+    }
+    catch (e) {
+      return false;
+    }
+  });
+  if (existing) {
+    const prop = {
+      active: true
+    };
+    // change to current station
+    if (existing.url.startsWith(url) === false) {
+      prop.url = url;
+    }
+    await chrome.tabs.update(existing.id, prop);
+    await chrome.windows.update(existing.windowId, {focused: true});
+  }
+  else {
+    await chrome.tabs.create({url});
+  }
+});
+
 const validate = async url => {
   const prefs = await chrome.storage.local.get({
     url: ''
@@ -179,7 +230,7 @@ const validate = async url => {
 
 chrome.runtime.onMessage.addListener((request, sender, response) => {
   if (request.method === 'validate') {
-    validate(request.href);
+    validate(request.href).catch(e => log('validation failed:', e.message));
   }
   else if (request.method === 'responsive-validate') {
     validate(request.href).then(() => response(true)).catch(e => response(e.message));
@@ -330,11 +381,20 @@ const schedule = async (forced = false, delay = 0, reason = '') => {
     periodInMinutes: prefs.timeout
   });
 };
-chrome.runtime.onInstalled.addListener(() => schedule(true, 0, 'installed'));
-chrome.runtime.onStartup.addListener(() => schedule(true, 0, 'startup'));
+chrome.runtime.onInstalled.addListener(() => {
+  schedule(true, 0, 'installed');
+  applyPopup();
+});
+chrome.runtime.onStartup.addListener(() => {
+  schedule(true, 0, 'startup');
+  applyPopup();
+});
 chrome.storage.onChanged.addListener(ps => {
   if (ps.url || ps.timeout || ps.metric || ps.accurate) {
     schedule(true, 0, 'prefs');
+  }
+  if (ps.popup) {
+    applyPopup();
   }
   if (ps['user-station'] && ps['user-station'].newValue === false) {
     schedule(true, 0, 'prefs');
