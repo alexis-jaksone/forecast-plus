@@ -140,25 +140,29 @@ const extract = async href => {
   return;
 };
 
-const guess = () => fetch('https://www.wunderground.com/').then(r => r.text()).then(content => {
-  const hrefs = content.split('https://api.weather.com/').slice(1).map(s => {
-    return 'https://api.weather.com/' + s.split('&q;')[0].replaceAll('&a;', '&');
-  });
+const guess = async () => {
+  const content = await fetch('https://www.wunderground.com/').then(r => r.text());
 
-  const near = hrefs.filter(s => s.indexOf('location/near') !== -1).shift();
-  if (near) {
-    return fetch(near).then(r => r.json()).then(j => {
-      if (j && j?.location?.stationId.length) {
-        return 'https://www.wunderground.com/weather/' + j.location.stationId[0];
+  const hrefs = (content.match(/https?:\/\/[^\s"'<>]+/g) || []).map(url => url.replace(/[.,!?;:)\]}]+$/, ''));
+  for (const href of hrefs) {
+    if (href && href.startsWith('https://api.weather.com/')) {
+      if (href.includes('location/near')) {
+        try {
+          const j = await fetch(href).then(r => r.json());
+          if (j && j?.location?.stationId.length) {
+            return 'https://www.wunderground.com/weather/' + j.location.stationId[0];
+          }
+        }
+        catch (e) {}
       }
-    });
+    }
   }
-});
+};
 
 const validate = async url => {
-  const prefs = await new Promise(resolve => chrome.storage.local.get({
+  const prefs = await chrome.storage.local.get({
     url: ''
-  }, resolve));
+  });
   if (prefs.url !== url) {
     log('validating', url);
     const o = await extract(url);
@@ -199,12 +203,12 @@ const update = async reason => {
   }
 
   update.now = Date.now();
-  const prefs = await new Promise(resolve => chrome.storage.local.get({
+  const prefs = await chrome.storage.local.get({
     'url': '',
     'user-station': false,
     'accurate': false,
     'metric': true
-  }, resolve));
+  });
   const href = prefs['user-station'] || prefs.url;
 
 
@@ -310,7 +314,7 @@ Last Check: ${new Date().toLocaleString(navigator.language, {hour12: false})}`
 update.now = 0;
 
 // check
-const schedule = (forced = false, delay = 0, reason = '') => {
+const schedule = async (forced = false, delay = 0, reason = '') => {
   log('new alarm; delay: ', delay, 'forced', forced, 'reason', reason);
   if (forced) {
     chrome.action.setBadgeText({
@@ -318,12 +322,13 @@ const schedule = (forced = false, delay = 0, reason = '') => {
     });
   }
 
-  chrome.storage.local.get({
+  const prefs = await chrome.storage.local.get({
     timeout: 10
-  }, prefs => chrome.alarms.create('timer', {
+  });
+  chrome.alarms.create('timer', {
     when: Date.now() + delay * 1000,
     periodInMinutes: prefs.timeout
-  }));
+  });
 };
 chrome.runtime.onInstalled.addListener(() => schedule(true, 0, 'installed'));
 chrome.runtime.onStartup.addListener(() => schedule(true, 0, 'startup'));

@@ -97,3 +97,14 @@ if (window.top !== window) {
   window.addEventListener('DOMContentLoaded', clean, false);
   window.addEventListener('load', clean, false);
 }
+
+console.log(location.href);
+Object.defineProperty(document, 'cookie', {
+  get() {
+    console.log(123);
+    return '';
+  },
+  set(v) {
+    console.log(v);
+  }
+});
