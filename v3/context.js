@@ -33,8 +33,7 @@
     chrome.contextMenus.create({
       title: 'Unit',
       id: 'unit',
-      contexts: ['action'],
-      checked: prefs.metric
+      contexts: ['action']
     }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Metric (C)',
