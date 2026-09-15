@@ -41,6 +41,18 @@ const extract = async href => {
   if (!r.ok) {
     throw Error('NOT_OK');
   }
+  // extract from API
+  if (href.includes('format=json')) {
+    const j = await r.json();
+    return {
+      value: j.temperature,
+      unit: 'F',
+      feels: j.temperatureFeelsLike,
+      icon: j.iconCode ? `//www.wunderground.com/static/i/c/v4/${j.iconCode}.svg` : '',
+      location: 'From IP address. Click icon and find exact station for more info'
+    };
+  }
+
   const content = await r.text();
 
   const type = href.indexOf('/pws/') === -1 ? 'nrm' : 'pws';
@@ -140,23 +152,50 @@ const extract = async href => {
   return;
 };
 
-const guess = async () => {
-  const content = await fetch('https://www.wunderground.com/').then(r => r.text());
+const guess = () => {
+  if (guess.promise) {
+    return guess.promise;
+  }
+  const run = async () => {
+    const content = await fetch('https://www.wunderground.com/pws/overview').then(r => r.text());
+    const hrefs = (content.match(/https?:\/\/[^\s"'<>]+/g) || []).map(url => url.replace(/[.,!?;:)\]}]+$/, ''));
 
-  const hrefs = (content.match(/https?:\/\/[^\s"'<>]+/g) || []).map(url => url.replace(/[.,!?;:)\]}]+$/, ''));
-  for (const href of hrefs) {
-    if (href && href.startsWith('https://api.weather.com/')) {
-      if (href.includes('location/near')) {
+    for (const href of hrefs) {
+      if (href && href.startsWith('https://api.weather.com/')) {
         try {
-          const j = await fetch(href).then(r => r.json());
-          if (j && j?.location?.stationId.length) {
-            return 'https://www.wunderground.com/weather/' + j.location.stationId[0];
+          if (href.includes('location/near')) {
+            const j = await fetch(href).then(r => r.json());
+            if (j && j?.location?.stationId.length) {
+              delete guess.promise;
+              return 'https://www.wunderground.com/weather/' + j.location.stationId[0];
+            }
+          }
+          else if (href.includes('forecast/daily/5day')) {
+            const h = new URL(href);
+            h.pathname = '/v3/wx/observations/current';
+            const geo = h.searchParams.get('geocode');
+            if (!geo || geo === '0,0') {
+              // Do we have geos
+              const link = hrefs.filter(a => a.includes('geocodes=')).at(0);
+              if (link) {
+                const url = new URL(link);
+                const geocodes = url.searchParams.get('geocodes').split(';');
+                if (geocodes.length) {
+                  h.searchParams.set('geocode', geocodes.at(0));
+                }
+              }
+            }
+
+            return h.href;
           }
         }
         catch (e) {}
       }
     }
-  }
+    delete guess.promise;
+  };
+  guess.promise = run();
+  return guess.promise;
 };
 
 /* popup interface preference */
@@ -183,6 +222,10 @@ chrome.action.onClicked.addListener(async () => {
   const prefs = await chrome.storage.local.get({
     url: 'https://www.wunderground.com/'
   });
+  if (prefs.url.includes('format=json')) {
+    delete prefs.url;
+  }
+
   const url = prefs.url || 'https://www.wunderground.com/';
   const hostname = new URL(url).hostname;
   const tabs = await chrome.tabs.query({});
@@ -306,6 +349,9 @@ Last Updated: ${new Date().toLocaleString(navigator.language, {hour12: false})}`
       });
       // icon
       try {
+        if (!o.icon) {
+          throw Error('NO_ICON');
+        }
         const path = '/data/icons/assets/png/' + (o.icon || '').split('/').pop().replace('.svg', '.png');
         await fetch(path).then(r => r.blob()).then(async b => {
           const img = await createImageBitmap(b);
@@ -357,8 +403,18 @@ Last Check: ${new Date().toLocaleString(navigator.language, {hour12: false})}`
     log('Try to guess location');
     update.now = 0;
     const href = await guess();
+    console.log(href);
     if (href) {
       await validate(href);
+    }
+    else {
+      chrome.action.setBadgeText({
+        text: 'E'
+      });
+      chrome.action.setTitle({
+        title: `Cannot guess weather.
+Please open Weather Underground on a browser tab and open your location's weather station.`
+      });
     }
   }
 };

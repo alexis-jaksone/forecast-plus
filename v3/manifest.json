@@ -2,15 +2,14 @@
   "name": "Weather Forecast",
   "description": "__MSG_description__",
   "default_locale": "en",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "manifest_version": 3,
   "permissions": [
     "declarativeNetRequestWithHostAccess",
     "storage",
     "alarms",
     "idle",
-    "contextMenus",
-    "windows"
+    "contextMenus"
   ],
   "host_permissions": [
     "*://www.wunderground.com/*",
@@ -37,7 +36,6 @@
   "content_scripts": [{
     "matches": ["*://www.wunderground.com/*"],
     "js": [
-      "/data/inject/clean.js",
       "/data/inject/observe.js"
     ],
     "run_at": "document_start",
@@ -60,7 +58,10 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "{98ab7bc7-0e75-430c-92cb-d27a0e48b23d}",
-      "strict_min_version": "128.0"
+      "strict_min_version": "148.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   }
 }

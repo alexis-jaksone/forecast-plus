@@ -19,21 +19,60 @@
 
 'use strict';
 
-chrome.runtime.sendMessage({
-  method: 'validate',
-  href: location.href
-});
+// homepage
+if (location.pathname === '/') {
+  const find = async () => {
+    for (let n = 0; n < 10; n += 1) {
+      for (const link of document.links) {
+        if (link.href.includes('HomeCardCurrentCondition')) {
+          chrome.runtime.sendMessage({
+            method: 'validate',
+            href: link.href
+          });
+          return;
+        }
+      }
+      // Try to find the first station
+      const re = /\/weather\/[^/]+\/[^/]+\/[^/]+\/([A-Z0-9]+)$/;
+      for (const link of document.links) {
+        if (re.test(link.pathname)) {
+          chrome.runtime.sendMessage({
+            method: 'validate',
+            href: link.href
+          });
+          return;
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  };
 
-if (window.top !== window) {
-  // try {
-  //   navigator.serviceWorker.getRegistrations().then(registrations => {
-  //     console.log(registrations);
-  //     for (const registration of registrations) {
-  //       registration.unregister();
-  //     }
-  //   });
-  // }
-  // catch (e) {
-  //   console.warn(e);
-  // }
+  document.addEventListener('DOMContentLoaded', async () => {
+    const prefs = await chrome.storage.local.get({
+      url: 'https://www.wunderground.com/'
+    });
+    // only find station if there it is not set yet
+    if (prefs.url === 'https://www.wunderground.com/') {
+      find();
+    }
+    // or if we dont know the geocode
+    else if (prefs.url.includes('format=json')) {
+      try {
+        const url = new URL(prefs.url);
+        const geocode = url.searchParams.get('geocode');
+        if (geocode === '0,0') {
+          find();
+        }
+      }
+      catch (e) {
+        find();
+      }
+    }
+  });
+}
+else {
+  chrome.runtime.sendMessage({
+    method: 'validate',
+    href: location.href
+  });
 }

@@ -86,7 +86,11 @@ self.query = (code, query, stop = true) => {
         }
       }
     };
-    parser.ontext = text => tree.text = text;
+    parser.ontext = text => {
+      if (tree) {
+        tree.text = text;
+      }
+    };
     parser.onend = () => resolve(stop ? undefined : results);
     parser.onerror = e => reject(e);
     parser.write(code).end();
