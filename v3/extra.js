@@ -92,7 +92,9 @@ self.query = (code, query, stop = true) => {
       }
     };
     parser.onend = () => resolve(stop ? undefined : results);
-    parser.onerror = e => reject(e);
+    parser.onerror = e => {
+      parser.resume(); // continue after an error
+    };
     parser.write(code).end();
   });
 };

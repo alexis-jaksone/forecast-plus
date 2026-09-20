@@ -32,6 +32,50 @@ const config = {
   'update-error': 2 * 60 // seconds
 };
 
+const weatherIconClassToCode = {
+  'tornado': 0,
+  'tropical-storm': 1,
+  'hurricane': 2,
+  'strong-storms': 3,
+  'thunderstorms': 4,
+  'rain-snow': 5,
+  'rain-sleet': 6,
+  'sleet': 18,
+  'blowing-dust': 19,
+  'fog': 20,
+  'haze': 21,
+  'smoke': 22,
+  'breezy': 23,
+  'windy': 24,
+  'frigid': 25,
+  'cloudy': 26,
+  'mostly-cloudy-night': 27,
+  'mostly-cloudy-day': 28,
+  'partly-cloudy-night': 29,
+  'partly-cloudy-day': 30,
+  'clear-night': 31,
+  'sunny': 32,
+  'fair-night': 33,
+  'fair-day': 34,
+  'fair-mostly-clear-night': 33,
+  'fair-mostly-sunny-day': 34,
+  'mixed-rain-hail': 35,
+  'hot': 36,
+  'sunny-day': 36,
+  'isolated-thunderstorms': 37,
+  'scattered-thunderstorms': 38,
+  'scattered-showers-day': 39,
+  'showers': 39,
+  'heavy-rain': 40,
+  'scattered-snow-showers-day': 41,
+  'heavy-snow': 42,
+  'blizzard': 43,
+  'na': 44,
+  'scattered-showers-night': 45,
+  'scattered-snow-showers-night': 46,
+  'scattered-thunderstorms-night': 47
+};
+
 const extract = async href => {
   const controller = new AbortController();
   setTimeout(() => controller.abort(), config['extract-timeout']);
@@ -56,100 +100,199 @@ const extract = async href => {
   const content = await r.text();
 
   const type = href.indexOf('/pws/') === -1 ? 'nrm' : 'pws';
-  const parent = await query(content, {
-    name: type === 'nrm' ? 'DIV' : 'SECTION',
-    match(n) {
-      if (type === 'nrm') {
-        return (n?.attributes?.CLASS || '').indexOf('condition-data') !== -1;
-      }
-      return n?.attributes?.ID === 'main-page-content';
-    }
-  });
-  if (parent) {
-    const r = {};
-    r.value = parent.child({
-      name: 'SPAN',
+  // old interface
+  {
+    const parent = await query(content, {
+      name: type === 'nrm' ? 'DIV' : 'SECTION',
       match(n) {
-        return (n?.attributes?.CLASS || '').indexOf('wu-value') !== -1;
-      }
-    })?.text;
-    if (r.value) {
-      r.value = parseFloat(r.value);
-    }
-    const unit = parent.child({
-      name: 'SPAN',
-      match(n) {
-        return (n?.attributes?.CLASS || '').indexOf('wu-label') !== -1;
+        if (type === 'nrm') {
+          return (n?.attributes?.CLASS || '').indexOf('condition-data') !== -1;
+        }
+        return n?.attributes?.ID === 'main-page-content';
       }
     });
-    if (unit && unit.children.length) {
-      r.unit = unit.children[1].text;
-    }
-    r.feels = parent.child({
-      name: 'DIV',
-      match(n) {
-        return (n?.attributes?.CLASS || '').indexOf('feels-like') !== -1;
-      }
-    })?.child({
-      match(n) {
-        const c = (n?.attributes?.CLASS || '');
-        return c.indexOf('wu-value') !== -1 || c.indexOf('temp') !== -1;
-      }
-    })?.text;
-    if (r.feels) {
-      r.feels = parseFloat(r.feels);
-    }
-
-    const icon = (await query(content, {
-      name: 'DIV',
-      match(n) {
-        return (n?.attributes?.CLASS || '').indexOf('condition-icon') !== -1;
-      }
-    }));
-    if (icon && icon.child) {
-      r.icon = icon.child({name: 'IMG'})?.attributes?.SRC;
-    }
-    if (!icon && type === 'pws') {
-      const station = (await query(content, {
-        name: 'A',
+    if (parent) {
+      const r = {};
+      r.value = parent.child({
+        name: 'SPAN',
         match(n) {
-          return (n?.attributes?.CLASS || '').indexOf('location-name') !== -1;
+          return (n?.attributes?.CLASS || '').indexOf('wu-value') !== -1;
+        }
+      })?.text;
+      if (r.value) {
+        r.value = parseFloat(r.value);
+      }
+      const unit = parent.child({
+        name: 'SPAN',
+        match(n) {
+          return (n?.attributes?.CLASS || '').indexOf('wu-label') !== -1;
+        }
+      });
+      if (unit && unit.children.length) {
+        r.unit = unit.children[1].text;
+      }
+      r.feels = parent.child({
+        name: 'DIV',
+        match(n) {
+          return (n?.attributes?.CLASS || '').indexOf('feels-like') !== -1;
+        }
+      })?.child({
+        match(n) {
+          const c = (n?.attributes?.CLASS || '');
+          return c.indexOf('wu-value') !== -1 || c.indexOf('temp') !== -1;
+        }
+      })?.text;
+      if (r.feels) {
+        r.feels = parseFloat(r.feels);
+      }
+
+      const icon = (await query(content, {
+        name: 'DIV',
+        match(n) {
+          return (n?.attributes?.CLASS || '').indexOf('condition-icon') !== -1;
         }
       }));
-      if (station) {
-        let href = 'https://www.wunderground.com' + station.attributes.HREF;
-        // this PWS points to another PWS or itself; try to guess the nearest station from homepage
-        if (station.attributes.HREF === '' || href.indexOf('/pws/') !== -1) {
-          try {
-            href = await guess();
+      if (icon && icon.child) {
+        r.icon = icon.child({name: 'IMG'})?.attributes?.SRC;
+      }
+      if (!icon && type === 'pws') {
+        const station = (await query(content, {
+          name: 'A',
+          match(n) {
+            return (n?.attributes?.CLASS || '').indexOf('location-name') !== -1;
           }
-          catch (e) {}
-        }
-        if (href && href.indexOf('/pws/') === -1) {
-          try {
-            r.icon = await extract(href).then(n => n.icon);
+        }));
+        if (station) {
+          let href = 'https://www.wunderground.com' + station.attributes.HREF;
+          // this PWS points to another PWS or itself; try to guess the nearest station from homepage
+          if (station.attributes.HREF === '' || href.indexOf('/pws/') !== -1) {
+            try {
+              href = await guess();
+            }
+            catch (e) {}
           }
-          catch (e) {}
+          if (href && href.indexOf('/pws/') === -1) {
+            try {
+              r.icon = await extract(href).then(n => n.icon);
+            }
+            catch (e) {}
+          }
         }
       }
+
+      // location
+      r.location = type === 'pws' ? (await query(content, {
+        name: 'DIV',
+        match(n) {
+          return (n?.attributes?.CLASS || '').indexOf('station-header') !== -1;
+        }
+      }))?.child({name: 'H1'})?.text : (await query(content, {
+        name: 'DIV',
+        match(n) {
+          return (n?.attributes?.CLASS || '').indexOf('city-header') !== -1;
+        }
+      }))?.child({name: 'H1'})?.child({name: 'SPAN'})?.text;
+
+      return r;
     }
-
-    // location
-    r.location = type === 'pws' ? (await query(content, {
-      name: 'DIV',
-      match(n) {
-        return (n?.attributes?.CLASS || '').indexOf('station-header') !== -1;
-      }
-    }))?.child({name: 'H1'})?.text : (await query(content, {
-      name: 'DIV',
-      match(n) {
-        return (n?.attributes?.CLASS || '').indexOf('city-header') !== -1;
-      }
-    }))?.child({name: 'H1'})?.child({name: 'SPAN'})?.text;
-
-    return r;
   }
-  return;
+  // new interface for weather page
+  {
+    // weather page
+    const parent = await query(content, {
+      name: 'DIV',
+      match(n) {
+        return n?.attributes?.CLASS === 'conditions';
+      }
+    }) || await query(content, { // homepage
+      name: 'DIV',
+      match(n) {
+        return n?.attributes?.CLASS === 'contents';
+      }
+    });
+    if (parent) {
+      const r = {};
+
+      const ve = parent.child({
+        name: 'DIV',
+        match(n) {
+          return (n?.attributes?.CLASS || '').includes('temp e') || (n?.attributes?.CLASS || '').includes('temp m');
+        }
+      });
+      r.value = ve?.text;
+      if (r.value) {
+        r.value = parseFloat(r.value);
+        r.unit = ve?.attributes?.CLASS.includes('temp e') ? 'F' : 'C';
+      }
+
+      const fe = parent.child({
+        name: 'DIV',
+        match(n) {
+          return (n?.attributes?.CLASS || '').includes('feels-like');
+        }
+      });
+      if (fe) {
+        if (fe.children.length) {
+          r.feels = fe.child({
+            name: 'SPAN'
+          })?.text;
+          if (r.feels) {
+            r.feels = parseFloat(r.feels);
+          }
+        }
+        else {
+          const match = fe.text.match(/-?\d+(?:\.\d+)?/);
+          if (match) {
+            r.feels = parseFloat(match[0]);
+          }
+        }
+      }
+      // icon
+      const ie = await parent.child({
+        name: 'DIV',
+        match(n) {
+          return (n?.attributes?.CLASS || '').includes('icon ');
+        }
+      });
+      if (ie) {
+        const cs = ie.attributes.CLASS.split(' ').filter(n => n !== 'icon');
+        for (const c of cs) {
+          if (c in weatherIconClassToCode) {
+            r.icon = `//www.wunderground.com/static/i/c/v4/${weatherIconClassToCode[c]}.svg`;
+            break;
+          }
+        }
+      }
+      // location for weather page
+      const le = await query(content, {
+        name: 'DIV',
+        match(n) {
+          return n?.attributes?.CLASS === 'station-info';
+        }
+      });
+      if (le) {
+        r.location = await le.child({
+          name: 'A',
+          match(n) {
+            return n?.attributes?.CLASS === 'station';
+          }
+        })?.text;
+      }
+      // location for homepage
+      if (!r.location) {
+        const le = await query(content, {
+          name: 'HOME-CARD-WC'
+        });
+        r.location = await le.child({
+          name: 'H1'
+        })?.text;
+      }
+
+      return r;
+    }
+  }
+
+  return {};
 };
 
 const guess = () => {
@@ -159,42 +302,25 @@ const guess = () => {
   const run = async () => {
     const content = await fetch('https://www.wunderground.com/pws/overview').then(r => r.text());
     const hrefs = (content.match(/https?:\/\/[^\s"'<>]+/g) || []).map(url => url.replace(/[.,!?;:)\]}]+$/, ''));
-
     for (const href of hrefs) {
       if (href && href.startsWith('https://api.weather.com/')) {
         try {
           if (href.includes('location/near')) {
             const j = await fetch(href).then(r => r.json());
             if (j && j?.location?.stationId.length) {
-              delete guess.promise;
               return 'https://www.wunderground.com/weather/' + j.location.stationId[0];
             }
-          }
-          else if (href.includes('forecast/daily/5day')) {
-            const h = new URL(href);
-            h.pathname = '/v3/wx/observations/current';
-            const geo = h.searchParams.get('geocode');
-            if (!geo || geo === '0,0') {
-              // Do we have geos
-              const link = hrefs.filter(a => a.includes('geocodes=')).at(0);
-              if (link) {
-                const url = new URL(link);
-                const geocodes = url.searchParams.get('geocodes').split(';');
-                if (geocodes.length) {
-                  h.searchParams.set('geocode', geocodes.at(0));
-                }
-              }
-            }
-
-            return h.href;
           }
         }
         catch (e) {}
       }
     }
-    delete guess.promise;
   };
-  guess.promise = run();
+  guess.promise = run().then(href => {
+    delete guess.promise;
+
+    return href || 'https://www.wunderground.com/';
+  });
   return guess.promise;
 };
 
@@ -254,6 +380,11 @@ chrome.action.onClicked.addListener(async () => {
 });
 
 const validate = async url => {
+  if (validate.cache.has(url)) {
+    return;
+  }
+  validate.cache.add(url);
+
   const prefs = await chrome.storage.local.get({
     url: ''
   });
@@ -270,6 +401,7 @@ const validate = async url => {
     log('looks good!', url);
   }
 };
+validate.cache = new Set();
 
 chrome.runtime.onMessage.addListener((request, sender, response) => {
   if (request.method === 'validate') {
@@ -305,8 +437,7 @@ const update = async reason => {
   });
   const href = prefs['user-station'] || prefs.url;
 
-
-  if (href && href !== 'https://www.wunderground.com/') {
+  if (href) {
     log('update', href, 'reason', reason);
     try {
       const o = await extract(href);
@@ -402,12 +533,16 @@ Last Check: ${new Date().toLocaleString(navigator.language, {hour12: false})}`
   else {
     log('Try to guess location');
     update.now = 0;
-    const href = await guess();
-    console.log(href);
-    if (href) {
-      await validate(href);
+    try {
+      const href = await guess();
+      if (href) {
+        await validate(href);
+      }
+      else {
+        throw Error('NO_HREF');
+      }
     }
-    else {
+    catch (e) {
       chrome.action.setBadgeText({
         text: 'E'
       });
