@@ -26,12 +26,12 @@ var config = require('./config');
 var checkNotifications;
 
 function guess () {
-  return app.get('http://www.wunderground.com/?MR=1').then(function (content) {
+  return app.get('https://www.wunderground.com/?MR=1').then(function (content) {
     let tmp = content.split('wui.bootstrapped.citypage');
     if (tmp && tmp[1]) {
       let zmw = /zmw\:\s*[\'\"]([\d\w\.]+)[\'\"]/.exec(tmp[1]);
       if (zmw && zmw.length) {
-        config.weather.currentURL = 'http://www.wunderground.com/q/zmw:' + zmw[1];
+        config.weather.currentURL = 'https://www.wunderground.com/q/zmw:' + zmw[1];
         checkNotifications();
       }
     }
@@ -89,7 +89,8 @@ checkNotifications = (function () {
       catch (e) {}
       let unit = cUnit ? `${temperature}\u00B0C or ${Math.round(temperature * 9 / 5 + 32)}\u00B0F` :
         `${Math.round((temperature - 32) * 5 / 9)}\u00B0C or ${temperature}\u00B0F`;
-      let tooltip = `Forecast Plus \n\nLast Updated: ${(new Date()).toLocaleTimeString()}\nTemperature: ${unit}\nLocation: ${location || '--'}\nFeels Like: ${feelsLike || '--'}`;
+      let tooltip = 'Forecast Plus \n\nLast Updated: ' + (new Date()).toLocaleTimeString() +
+        '\nTemperature: ' + unit + '\nLocation: ' + (location || '--') + '\nFeels Like: ' + (feelsLike || '--');
       app.button.label = tooltip.trim();
     }, function (e) {
       if (e === 404) {
