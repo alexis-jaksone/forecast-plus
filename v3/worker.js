@@ -27,6 +27,7 @@ if (typeof importScripts !== 'undefined') {
 const config = {
   'skip-update': 1000, // ms
   'extract-timeout': 120000, // ms
+  'guess-timeout': 30000, // ms
   'idle-timeout': 5 * 60 * 1000, // ms
   'idle-delay': 20, // ms
   'update-error': 2 * 60 // seconds
@@ -300,13 +301,21 @@ const guess = () => {
     return guess.promise;
   }
   const run = async () => {
-    const content = await fetch('https://www.wunderground.com/pws/overview').then(r => r.text());
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), config['guess-timeout']);
+    const content = await fetch('https://www.wunderground.com/pws/overview', {
+      signal: controller.signal
+    }).then(r => r.text());
     const hrefs = (content.match(/https?:\/\/[^\s"'<>]+/g) || []).map(url => url.replace(/[.,!?;:)\]}]+$/, ''));
     for (const href of hrefs) {
       if (href && href.startsWith('https://api.weather.com/')) {
         try {
           if (href.includes('location/near')) {
-            const j = await fetch(href).then(r => r.json());
+            const controller = new AbortController();
+            setTimeout(() => controller.abort(), config['guess-timeout']);
+            const j = await fetch(href, {
+              signal: controller.signal
+            }).then(r => r.json());
             if (j && j?.location?.stationId.length) {
               return 'https://www.wunderground.com/weather/' + j.location.stationId[0];
             }
@@ -316,9 +325,8 @@ const guess = () => {
       }
     }
   };
-  guess.promise = run().then(href => {
+  guess.promise = run().catch(() => '').then(href => {
     delete guess.promise;
-
     return href || 'https://www.wunderground.com/';
   });
   return guess.promise;
@@ -380,19 +388,24 @@ chrome.action.onClicked.addListener(async () => {
 });
 
 const validate = async url => {
-  if (validate.cache.has(url)) {
+  // do not validate same URL multiple time simultaneously
+  if (validate.href === url) {
+    log('validation skipped', url);
     return;
   }
-  validate.cache.add(url);
+
+  validate.href = url;
 
   const prefs = await chrome.storage.local.get({
     url: ''
   });
+
   if (prefs.url !== url) {
     log('validating', url);
     const o = await extract(url);
 
     if (!o || isNaN(o.value) || o.location === 'undefined') {
+      delete validate.href;
       throw Error('not a valid station');
     }
     chrome.storage.local.set({
@@ -400,6 +413,8 @@ const validate = async url => {
     });
     log('looks good!', url);
   }
+
+  delete validate.href;
 };
 validate.cache = new Set();
 
@@ -535,6 +550,7 @@ Last Check: ${new Date().toLocaleString(navigator.language, {hour12: false})}`
     update.now = 0;
     try {
       const href = await guess();
+
       if (href) {
         await validate(href);
       }
