@@ -41,40 +41,69 @@ const weatherIconClassToCode = {
   'thunderstorms': 4,
   'rain-snow': 5,
   'rain-sleet': 6,
+  'wintry-mix': 7,
+  'freezing-drizzle': 8,
+  'drizzle': 9,
+  'freezing-rain': 10,
+  'showers': 11,
+  'rain': 12,
+  'flurries': 13,
+  'snow-showers': 14,
+  'blowing-drifting-snow': 15,
+  'snow': 16,
+  'hail': 17,
   'sleet': 18,
-  'blowing-dust': 19,
-  'fog': 20,
+  'blowing-dust-sandstorm': 19,
+  'foggy': 20,
   'haze': 21,
   'smoke': 22,
   'breezy': 23,
   'windy': 24,
-  'frigid': 25,
+  'frigid-ice-crystals': 25,
   'cloudy': 26,
   'mostly-cloudy-night': 27,
   'mostly-cloudy-day': 28,
   'partly-cloudy-night': 29,
   'partly-cloudy-day': 30,
   'clear-night': 31,
-  'sunny': 32,
-  'fair-night': 33,
-  'fair-day': 34,
+  'sunny-day': 32,
   'fair-mostly-clear-night': 33,
   'fair-mostly-sunny-day': 34,
-  'mixed-rain-hail': 35,
-  'hot': 36,
-  'sunny-day': 36,
-  'isolated-thunderstorms': 37,
-  'scattered-thunderstorms': 38,
+  'mixed-rain-and-hail': 35,
+  'hot-day': 36,
+  'isolated-thunderstorms-day': 37,
+  'scattered-thunderstorms-day': 38,
   'scattered-showers-day': 39,
-  'showers': 39,
   'heavy-rain': 40,
   'scattered-snow-showers-day': 41,
   'heavy-snow': 42,
   'blizzard': 43,
-  'na': 44,
+  'not-available': 44,
   'scattered-showers-night': 45,
   'scattered-snow-showers-night': 46,
-  'scattered-thunderstorms-night': 47
+  'scattered-thunderstorms-night': 47,
+  // aliases from the previous interface
+  'blowing-dust': 19,
+  'fog': 20,
+  'frigid': 25,
+  'sunny': 32,
+  'fair-night': 33,
+  'fair-day': 34,
+  'mixed-rain-hail': 35,
+  'hot': 36,
+  'isolated-thunderstorms': 37,
+  'scattered-thunderstorms': 38,
+  'na': 44
+};
+
+// converts the class name of an icon element to the icon's address
+const iconURL = node => {
+  const cs = (node?.attributes?.CLASS || '').split(' ').filter(n => n !== 'icon');
+  for (const c of cs) {
+    if (c in weatherIconClassToCode) {
+      return `//www.wunderground.com/static/i/c/v4/${weatherIconClassToCode[c]}.svg`;
+    }
+  }
 };
 
 const extract = async href => {
@@ -197,6 +226,68 @@ const extract = async href => {
       return r;
     }
   }
+  // current interface (web components)
+  {
+    // weather page
+    const parent = await query(content, {
+      name: 'CURRENT-CONDITIONS-VIEW'
+    });
+    if (parent) {
+      const r = {};
+
+      const ve = await parent.child({
+        name: 'DIV',
+        match(n) {
+          return (n?.attributes?.CLASS || '').includes('cc-temp');
+        }
+      });
+      if (ve) {
+        r.value = parseFloat(ve.text);
+      }
+      const ue = await parent.child({
+        name: 'SPAN',
+        match(n) {
+          return (n?.attributes?.CLASS || '').includes('cc-unit');
+        }
+      });
+      if (ue?.text) {
+        r.unit = ue.text.trim();
+      }
+
+      const fe = await parent.child({
+        name: 'SPAN',
+        match(n) {
+          return (n?.attributes?.CLASS || '').includes('cc-feels-like');
+        }
+      });
+      if (fe) {
+        const match = (fe.text || '').match(/-?\d+(?:\.\d+)?/);
+        if (match) {
+          r.feels = parseFloat(match[0]);
+        }
+      }
+      // icon
+      const readout = await parent.child({
+        name: 'DIV',
+        match(n) {
+          return (n?.attributes?.CLASS || '').includes('cc-readout');
+        }
+      });
+      r.icon = iconURL(await readout?.child({
+        name: 'DIV',
+        match(n) {
+          return (n?.attributes?.CLASS || '').includes('icon');
+        }
+      }));
+      // location
+      const lh = await query(content, {
+        name: 'LOCATION-HEADER-VIEW'
+      });
+      r.location = (await lh?.child({name: 'H1'}))?.text || (await query(content, {name: 'H1'}))?.text;
+
+      return r;
+    }
+  }
   // new interface for weather page
   {
     // weather page
@@ -292,8 +383,53 @@ const extract = async href => {
       return r;
     }
   }
+  // pws dashboard
+  {
+    const parent = await query(content, {
+      name: 'TEMP-WIDGET-VIEW'
+    });
+    if (parent) {
+      const r = {
+        value: parseFloat(parent.attributes['DATA-TEMP']),
+        feels: parseFloat(parent.attributes['DATA-FEELS-LIKE']),
+        unit: parent.attributes['DATA-UNIT'] === 'm' ? 'C' : 'F'
+      };
+
+      const li = await query(content, {
+        name: 'DIV',
+        match(n) {
+          return n?.attributes?.CLASS === 'location-info';
+        }
+      });
+      const a = li?.child({name: 'A'});
+      if (a) {
+        r.location = (a.text || '').replace(/^Forecast for\s+/i, '');
+        // the dashboard has no weather icon; extract it from the linked forecast page
+        if (a.attributes.HREF && a.attributes.HREF.startsWith('/weather/')) {
+          r.icon = await iconOfPage('https://www.wunderground.com' + a.attributes.HREF);
+        }
+      }
+      if (!r.location) {
+        r.location = (await query(content, {name: 'H1'}))?.text;
+      }
+
+      return r;
+    }
+  }
 
   return {};
+};
+
+const iconCache = new Map();
+// retrieves the current weather icon from a forecast page
+const iconOfPage = async href => {
+  const cached = iconCache.get(href);
+  if (cached && Date.now() - cached.time < 10 * 60 * 1000) {
+    return cached.icon;
+  }
+  const icon = await extract(href).then(o => o.icon).catch(() => undefined);
+  iconCache.set(href, {icon, time: Date.now()});
+  return icon;
 };
 
 const guess = () => {

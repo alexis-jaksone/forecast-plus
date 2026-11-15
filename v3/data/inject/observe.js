@@ -24,7 +24,7 @@ if (location.pathname === '/') {
   const find = async () => {
     for (let n = 0; n < 10; n += 1) {
       for (const link of document.links) {
-        if (link.classList.contains('fct-button')) {
+        if (link.classList.contains('fct-button') || link.classList.contains('home-forecast-button')) {
           chrome.runtime.sendMessage({
             method: 'validate',
             href: link.href
